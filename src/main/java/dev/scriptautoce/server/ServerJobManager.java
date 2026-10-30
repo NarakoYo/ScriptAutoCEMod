@@ -2,6 +2,7 @@ package dev.scriptautoce.server;
 
 import com.google.gson.reflect.TypeToken;
 import dev.scriptautoce.config.ServerSettings;
+import dev.scriptautoce.job.JobReason;
 import dev.scriptautoce.network.ScriptPayloads.JobEventPayload;
 import dev.scriptautoce.policy.CommandPolicy;
 import dev.scriptautoce.script.CompilationResult;
@@ -121,11 +122,12 @@ final class ServerJobManager {
             }
             ServerPlayer player = server.getPlayerList().getPlayer(job.playerId);
             if (player == null) {
-                job.finish(ServerJob.Status.CANCELLED, "Player disconnected", server.getTickCount());
+                job.finish(ServerJob.Status.CANCELLED, "Player disconnected",
+                        JobReason.EXTERNAL_DISCONNECT, "Player disconnected", server.getTickCount());
                 continue;
             }
             if (server.getTickCount() - job.startedTick > job.maxTicks) {
-                fail(player, job, "Runtime tick limit exceeded");
+                fail(player, job, "Runtime tick limit exceeded", JobReason.LIMIT_EXCEEDED);
                 continue;
             }
             if (job.waitTicks > 0) {
@@ -142,6 +144,7 @@ final class ServerJobManager {
                     job.addLogs(job.interpreter.drainLogs());
                     if (result instanceof Interpreter.Command command) {
                         job.currentCommand = command.command();
+                        job.currentLine = command.line();
                         CommandOutcome outcome = executeAsPlayer(player, command.command());
                         commandsThisTick++;
                         job.commandCount++;
@@ -157,18 +160,18 @@ final class ServerJobManager {
                             String onDenied = job.script.onDenied();
                             String onError = job.script.onError();
                             if (outcome.hardBlocked) {
-                                fail(player, job, outcome.message);
+                                fail(player, job, outcome.message, outcome.reason);
                                 yield = true;
                             } else if (outcome.denied && onDenied.equals("skip")
                                     || !outcome.denied && onError.equals("continue")) {
                                 job.addLogs(List.of("Skipped failed command: " + outcome.message));
                             } else {
-                                fail(player, job, outcome.message);
+                                fail(player, job, outcome.message, outcome.reason);
                                 yield = true;
                             }
                         }
                         if (job.commandCount >= job.maxCommands) {
-                            fail(player, job, "Command limit exceeded");
+                            fail(player, job, "Command limit exceeded", JobReason.LIMIT_EXCEEDED);
                             yield = true;
                         }
                     } else if (result instanceof Interpreter.Waiting waiting) {
@@ -179,7 +182,8 @@ final class ServerJobManager {
                         job.progress = 100;
                         job.currentCommand = "";
                         job.addLogs(List.of(finished.message()));
-                        job.finish(ServerJob.Status.COMPLETED, finished.message(), server.getTickCount());
+                        job.finish(ServerJob.Status.COMPLETED, finished.message(), JobReason.COMPLETED,
+                                finished.message(), server.getTickCount());
                         sendEvent(player, job, "finished", finished.message());
                         AuditLog.write("job-finish", Map.of("job", job.id, "status", "completed"));
                         yield = true;
@@ -190,9 +194,10 @@ final class ServerJobManager {
                     job.progressDirty = false;
                 }
             } catch (ScriptException exception) {
-                fail(player, job, exception.line() + ":" + exception.column() + " " + exception.getMessage());
+                job.currentLine = exception.line();
+                fail(player, job, exception.getMessage(), JobReason.SCRIPT_ERROR);
             } catch (RuntimeException exception) {
-                fail(player, job, "Execution failure: " + exception.getMessage());
+                fail(player, job, "Execution failure: " + exception.getMessage(), JobReason.SCRIPT_ERROR);
             }
         }
     }
@@ -205,7 +210,8 @@ final class ServerJobManager {
         if (!job.playerId.equals(player.getUUID())) {
             throw new IllegalArgumentException("This job belongs to another player");
         }
-        job.finish(ServerJob.Status.CANCELLED, "Cancelled by player", server.getTickCount());
+        job.finish(ServerJob.Status.CANCELLED, "Cancelled by player", JobReason.USER_CANCELLED,
+                "Cancelled by player", server.getTickCount());
         sendEvent(player, job, "cancelled", job.message);
         AuditLog.write("job-cancel", Map.of("job", job.id, "player", player.getUUID()));
     }
@@ -213,13 +219,15 @@ final class ServerJobManager {
     void cancelAll(UUID playerId) {
         jobs.values().stream().filter(ServerJob::active)
                 .filter(job -> job.playerId.equals(playerId))
-                .forEach(job -> job.finish(ServerJob.Status.CANCELLED, "Player disconnected", server.getTickCount()));
+                .forEach(job -> job.finish(ServerJob.Status.CANCELLED, "Player disconnected",
+                        JobReason.EXTERNAL_DISCONNECT, "Player disconnected", server.getTickCount()));
     }
 
     void stopAll(String reason) {
         for (ServerJob job : jobs.values()) {
             if (job.active()) {
-                job.finish(ServerJob.Status.CANCELLED, reason, server.getTickCount());
+                job.finish(ServerJob.Status.CANCELLED, reason, JobReason.EXTERNAL_EMERGENCY,
+                        reason, server.getTickCount());
                 ServerPlayer player = server.getPlayerList().getPlayer(job.playerId);
                 if (player != null) {
                     sendEvent(player, job, "cancelled", reason);
@@ -248,7 +256,8 @@ final class ServerJobManager {
     private CommandOutcome executeAsPlayer(ServerPlayer player, String command) {
         CommandPolicy.PolicyDecision decision = policy.evaluate(command);
         if (!decision.allowed()) {
-            return new CommandOutcome(false, true, decision.hardBlocked(), decision.reason());
+            return new CommandOutcome(false, true, decision.hardBlocked(),
+                    JobReason.POLICY_BLOCKED, decision.reason());
         }
         AtomicBoolean failed = new AtomicBoolean(false);
         AtomicInteger result = new AtomicInteger(0);
@@ -264,24 +273,27 @@ final class ServerJobManager {
             ParseResults<CommandSourceStack> parsed = server.getCommands().getDispatcher().parse(command, source);
             if (!parsed.getExceptions().isEmpty() || parsed.getContext().getCommand() == null
                     || parsed.getReader().canRead()) {
-                return new CommandOutcome(false, true, false, "Command was rejected by the server");
+                return new CommandOutcome(false, true, false, JobReason.COMMAND_DENIED,
+                        "Command was rejected by the server");
             }
             server.getCommands().performCommand(parsed, command);
             if (failed.get()) {
-                return new CommandOutcome(false, false, false, "Command execution failed");
+                return new CommandOutcome(false, false, false, JobReason.COMMAND_ERROR,
+                        "Command execution failed");
             }
-            return new CommandOutcome(true, false, false, "ok:" + result.get());
+            return new CommandOutcome(true, false, false, JobReason.RUNNING, "ok:" + result.get());
         } catch (Exception exception) {
-            return new CommandOutcome(false, false, false, "Command error: " + exception.getMessage());
+            return new CommandOutcome(false, false, false, JobReason.COMMAND_ERROR,
+                    "Command error: " + exception.getMessage());
         }
     }
 
-    private void fail(ServerPlayer player, ServerJob job, String message) {
+    private void fail(ServerPlayer player, ServerJob job, String message, JobReason reason) {
         if (!job.active()) {
             return;
         }
         job.addLogs(List.of("ERROR: " + message));
-        job.finish(ServerJob.Status.FAILED, message, server.getTickCount());
+        job.finish(ServerJob.Status.FAILED, message, reason, message, server.getTickCount());
         sendEvent(player, job, "failed", message);
         AuditLog.write("job-fail", Map.of("job", job.id, "reason", message));
     }
@@ -294,7 +306,8 @@ final class ServerJobManager {
 
     private JobEventPayload payload(ServerJob job, String type, String message) {
         return new JobEventPayload(job.id, type, message, job.progress,
-                trim(job.currentCommand, 1_024), JsonFiles.GSON.toJson(job.logs()));
+                trim(job.currentCommand, 1_024), JsonFiles.GSON.toJson(job.logs()),
+                job.reason.name(), job.detail, job.currentLine);
     }
 
     private long activeCount() {
@@ -322,6 +335,7 @@ final class ServerJobManager {
         return value.length() <= length ? value : value.substring(0, length);
     }
 
-    private record CommandOutcome(boolean success, boolean denied, boolean hardBlocked, String message) {
+    private record CommandOutcome(boolean success, boolean denied, boolean hardBlocked,
+                                  JobReason reason, String message) {
     }
 }

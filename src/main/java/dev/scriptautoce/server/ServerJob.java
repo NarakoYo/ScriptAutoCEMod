@@ -2,6 +2,7 @@ package dev.scriptautoce.server;
 
 import dev.scriptautoce.script.CompiledScript;
 import dev.scriptautoce.script.Interpreter;
+import dev.scriptautoce.job.JobReason;
 import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.List;
@@ -29,7 +30,10 @@ final class ServerJob {
     int commandCount;
     int progress;
     String currentCommand = "";
+    int currentLine = 1;
     String message = "";
+    JobReason reason = JobReason.RUNNING;
+    String detail = "";
     long completedTick = -1;
     boolean progressDirty;
 
@@ -58,9 +62,12 @@ final class ServerJob {
         return List.copyOf(logs);
     }
 
-    void finish(Status finalStatus, String finalMessage, long tick) {
+    void finish(Status finalStatus, String finalMessage, JobReason finalReason,
+                String finalDetail, long tick) {
         status = finalStatus;
         message = finalMessage;
+        reason = finalReason;
+        detail = finalDetail;
         completedTick = tick;
         progressDirty = true;
     }

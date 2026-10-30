@@ -7,6 +7,7 @@ import dev.scriptautoce.ScriptAutoCe;
 import dev.scriptautoce.client.script.DirectScriptJobManager;
 import dev.scriptautoce.client.ui.ClientUiState;
 import dev.scriptautoce.client.ui.ClientUiState.MessageTone;
+import dev.scriptautoce.client.ui.JobReasonDisplay;
 import dev.scriptautoce.client.ui.ScriptLibraryScreen;
 import dev.scriptautoce.network.ScriptPayloads;
 import dev.scriptautoce.network.ScriptPayloads.ActionResultPayload;
@@ -146,10 +147,14 @@ public final class ClientNetworkController {
                         Component.translatable("message.scriptautoce.job_started", payload.jobId()));
                 case "finished" -> ClientUiState.message(MessageTone.SUCCESS,
                         Component.translatable("message.scriptautoce.job_finished"));
-                case "failed" -> ClientUiState.message(MessageTone.ERROR,
-                        Component.translatable("message.scriptautoce.job_failed", payload.message()));
-                case "cancelled" -> ClientUiState.message(MessageTone.WARNING,
-                        Component.translatable("message.scriptautoce.job_cancelled"));
+                case "failed", "cancelled" -> {
+                    Component reason = JobReasonDisplay.label(payload.reasonCode());
+                    MessageTone tone = JobReasonDisplay.color(payload.reasonCode()) == net.minecraft.ChatFormatting.RED
+                            ? MessageTone.ERROR : MessageTone.WARNING;
+                    ClientUiState.message(tone,
+                            Component.translatable("message.scriptautoce.job_interrupted", reason,
+                                    JobReasonDisplay.description(payload.reasonCode())));
+                }
                 default -> {
                 }
             }
@@ -392,7 +397,7 @@ public final class ClientNetworkController {
                         : job.eventType().equals("cancelled") ? MessageTone.WARNING : MessageTone.INFO,
                 Component.translatable("message.scriptautoce.job_status",
                         job.jobId(),
-                        Component.translatable("job.scriptautoce." + job.eventType()),
+                        JobReasonDisplay.label(job.reasonCode()),
                         job.progress(), job.message())));
     }
 

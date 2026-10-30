@@ -1,6 +1,7 @@
 package dev.scriptautoce.client.script;
 
 import dev.scriptautoce.client.ui.ClientUiState;
+import dev.scriptautoce.job.JobReason;
 import dev.scriptautoce.network.ScriptPayloads.JobEventPayload;
 import dev.scriptautoce.policy.CommandPolicy;
 import dev.scriptautoce.script.CompilationResult;
@@ -48,7 +49,7 @@ public final class DirectScriptJobManager {
         tickCounter++;
         if (client.player == null) {
             jobs.values().stream().filter(Job::active)
-                    .forEach(job -> fail(job, "Client disconnected"));
+                    .forEach(job -> fail(job, "Client disconnected", JobReason.EXTERNAL_DISCONNECT));
             return;
         }
         for (Job job : new ArrayList<>(jobs.values())) {
@@ -59,11 +60,11 @@ public final class DirectScriptJobManager {
                 continue;
             }
             if (tickCounter - job.startedTick > 6_000) {
-                fail(job, "Runtime tick limit exceeded");
+                fail(job, "Runtime tick limit exceeded", JobReason.LIMIT_EXCEEDED);
                 continue;
             }
             if (job.count >= 10_000) {
-                fail(job, "Command limit exceeded");
+                fail(job, "Command limit exceeded", JobReason.LIMIT_EXCEEDED);
                 continue;
             }
             int commands = 0;
@@ -77,7 +78,7 @@ public final class DirectScriptJobManager {
                             if (!decision.hardBlocked() && job.script.onDenied().equals("skip")) {
                                 job.addLogs(List.of("Skipped blocked command: " + decision.reason()));
                             } else {
-                                fail(job, decision.reason());
+                                fail(job, decision.reason(), JobReason.POLICY_BLOCKED);
                                 break;
                             }
                         } else {
@@ -86,6 +87,7 @@ public final class DirectScriptJobManager {
                         commands++;
                         job.count++;
                         job.command = command.command();
+                        job.line = command.line();
                         job.progress = Math.min(99, job.count);
                     } else if (result instanceof Interpreter.Waiting waiting) {
                         job.waitTicks = waiting.ticks();
@@ -94,6 +96,8 @@ public final class DirectScriptJobManager {
                         job.active = false;
                         job.progress = 100;
                         job.command = "";
+                        job.reason = JobReason.COMPLETED;
+                        job.detail = finished.message();
                         job.addLogs(List.of(finished.message()));
                         publish(job, "finished", finished.message());
                         break;
@@ -103,9 +107,10 @@ public final class DirectScriptJobManager {
                     publish(job, "progress", "Direct mode running");
                 }
             } catch (ScriptException exception) {
-                fail(job, exception.line() + ":" + exception.column() + " " + exception.getMessage());
+                job.line = exception.line();
+                fail(job, exception.getMessage(), JobReason.SCRIPT_ERROR);
             } catch (RuntimeException exception) {
-                fail(job, exception.getMessage());
+                fail(job, exception.getMessage(), JobReason.SCRIPT_ERROR);
             }
         }
     }
@@ -116,6 +121,8 @@ public final class DirectScriptJobManager {
             return false;
         }
         job.active = false;
+        job.reason = JobReason.USER_CANCELLED;
+        job.detail = "Cancelled";
         publish(job, "cancelled", "Cancelled");
         return true;
     }
@@ -123,22 +130,27 @@ public final class DirectScriptJobManager {
     public void cancelAll() {
         jobs.values().stream().filter(Job::active).forEach(job -> {
             job.active = false;
+            job.reason = JobReason.EXTERNAL_DISCONNECT;
+            job.detail = "Client disconnected";
             publish(job, "cancelled", "Client disconnected");
         });
     }
 
-    private void fail(Job job, String message) {
+    private void fail(Job job, String message, JobReason reason) {
         if (!job.active) {
             return;
         }
         job.active = false;
+        job.reason = reason;
+        job.detail = message;
         job.addLogs(List.of("ERROR: " + message));
         publish(job, "failed", message);
     }
 
     private void publish(Job job, String type, String message) {
         ClientUiState.updateJob(new JobEventPayload(job.id, type, message, job.progress,
-                job.command, JsonFiles.GSON.toJson(job.logs())));
+                job.command, JsonFiles.GSON.toJson(job.logs()), job.reason.name(), job.detail,
+                job.line));
     }
 
     private long activeCount() {
@@ -156,6 +168,9 @@ public final class DirectScriptJobManager {
         private int count;
         private int progress;
         private String command = "";
+        private int line = 1;
+        private JobReason reason = JobReason.RUNNING;
+        private String detail = "";
 
         private Job(String id, CompiledScript script, Interpreter interpreter, long startedTick) {
             this.id = id;

@@ -48,13 +48,13 @@ public final class ScriptEditorScreen extends Screen {
                 .bounds(width - 48, 28, 44, 18).build());
 
         editor = MultiLineEditBox.builder()
-                .setX(40)
+                .setX(52)
                 .setY(50)
                 .setShowBackground(true)
                 .setShowDecorations(true)
-                .setTextColor(0x00FFFFFF)
+                .setTextColor(0xFFD4D4D4)
                 .setTextShadow(false)
-                .build(font, width - 52, height - 72,
+                .build(font, width - 64, height - 72,
                         Component.translatable("screen.scriptautoce.editor.placeholder"));
         editor.setCharacterLimit(ScriptCompiler.MAX_SOURCE_BYTES);
         editor.setLineLimit(2_000);
@@ -143,12 +143,14 @@ public final class ScriptEditorScreen extends Screen {
     @Override
     public void extractBackground(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float delta) {
         graphics.fill(0, 0, width, height, 0xFF1E1E1E);
-        graphics.fill(0, 0, width, 24, 0xFF252526);
-        graphics.fill(0, 24, width, 48, 0xFF2D2D30);
-        graphics.fill(8, 4, Math.min(width - 8, 8 + font.width(fileName()) + 20), 23, 0xFF1E1E1E);
-        graphics.fill(8, 4, Math.min(width - 8, 8 + font.width(fileName()) + 20), 6, 0xFF007ACC);
-        graphics.fill(12, 50, 38, height - 22, 0xFF252526);
-        graphics.fill(0, height - 20, width, height, 0xFF007ACC);
+        graphics.fill(0, 0, width, 24, 0xFF181818);
+        graphics.fill(0, 24, width, 48, 0xFF252526);
+        graphics.fill(8, 4, Math.min(width - 8, 8 + font.width(fileName()) + 20), 24, 0xFF2D2D30);
+        graphics.fill(8, 4, Math.min(width - 8, 8 + font.width(fileName()) + 20), 6, 0xFF3B82F6);
+        graphics.fill(12, 50, 50, height - 22, 0xFF1F1F1F);
+        graphics.fill(50, 50, 51, height - 22, 0xFF2B2B2B);
+        graphics.fill(0, height - 20, width, height - 19, 0xFF3B82F6);
+        graphics.fill(0, height - 19, width, height, 0xFF1F2937);
     }
 
     @Override
@@ -160,7 +162,7 @@ public final class ScriptEditorScreen extends Screen {
                     Math.max(1, editor.getHeight() / 9), editor.scrollAmount());
             int y = editor.getY() + 4;
             for (String number : numbers) {
-                graphics.text(font, number, 34 - font.width(number), y, 0xFF858585, false);
+                graphics.text(font, number, 46 - font.width(number), y, 0xFF858585, false);
                 y += 9;
             }
         }

@@ -1,10 +1,12 @@
 package dev.scriptautoce.client.chat;
 
 import dev.scriptautoce.client.ui.ClientUiState;
-import java.util.ArrayList;
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
+import java.util.WeakHashMap;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 
@@ -18,8 +20,48 @@ public final class ChatHintController {
             hint("##download "),
             hint("##help")
     );
+    private static final Map<Object, State> STATES =
+            Collections.synchronizedMap(new WeakHashMap<>());
+    private static final int ROW_HEIGHT = 10;
 
     private ChatHintController() {
+    }
+
+    public static String cycleCompletion(Object owner, String input, boolean backwards) {
+        State state = STATES.computeIfAbsent(owner, ignored -> new State());
+        if (!input.equals(state.lastCompletion)) {
+            state.baseInput = input;
+            state.selectedIndex = -1;
+        }
+        List<Hint> hints = hints(state.baseInput);
+        if (hints.isEmpty()) {
+            return null;
+        }
+        int direction = backwards ? -1 : 1;
+        state.selectedIndex = Math.floorMod(state.selectedIndex + direction, hints.size());
+        state.hints = hints;
+        state.lastCompletion = hints.get(state.selectedIndex).completion();
+        return state.lastCompletion;
+    }
+
+    public static String mouseClicked(Object owner, String input, double mouseX, double mouseY, int button) {
+        if (button != 0) {
+            return null;
+        }
+        State state = STATES.get(owner);
+        if (state == null || state.hits == null || state.hints.isEmpty()) {
+            return null;
+        }
+        int row = state.hits.rowAt(mouseX, mouseY);
+        if (row < 0 || row >= state.hints.size()) {
+            return null;
+        }
+        if (!input.equals(state.lastCompletion)) {
+            state.baseInput = input;
+        }
+        state.selectedIndex = row;
+        state.lastCompletion = state.hints.get(row).completion();
+        return state.lastCompletion;
     }
 
     public static List<Hint> hints(String input) {
@@ -54,37 +96,53 @@ public final class ChatHintController {
         return List.copyOf(result.values());
     }
 
-    public static String firstCompletion(String input) {
-        List<Hint> hints = hints(input);
-        return hints.isEmpty() ? null : hints.getFirst().completion();
-    }
-
-    public static void render(GuiGraphicsExtractor graphics, Font font, String input,
-                              int x, int y, int inputWidth) {
-        List<Hint> hints = hints(input);
+    public static void render(Object owner, GuiGraphicsExtractor graphics, Font font, String input,
+                              int x, int y, int inputWidth, int mouseX, int mouseY) {
+        State state = STATES.computeIfAbsent(owner, ignored -> new State());
+        List<Hint> hints = displayedHints(state, input);
         if (hints.isEmpty()) {
+            state.hits = null;
+            state.hints = List.of();
             return;
         }
         int visible = Math.min(8, hints.size());
-        int rowHeight = 10;
-        int top = Math.max(2, y - visible * rowHeight - 7);
+        int top = Math.max(2, y - visible * ROW_HEIGHT - 7);
         int width = 0;
         for (int index = 0; index < visible; index++) {
             width = Math.max(width, font.width(hints.get(index).completion()));
         }
         width = Math.min(inputWidth - 4, width + 10);
+        HitBox hits = new HitBox(x - 2, top - 2, x + width + 4, top + visible * ROW_HEIGHT + 2);
+        state.hits = hits;
+        state.hints = hints;
+        int hovered = hits.rowAt(mouseX, mouseY);
+
         graphics.nextStratum();
-        graphics.fill(x - 2, top - 2, x + width + 4, top + visible * rowHeight + 2, 0xC0101010);
+        graphics.fill(hits.left, hits.top, hits.right, hits.bottom, 0xC0101010);
         for (int index = 0; index < visible; index++) {
+            int rowY = top + index * ROW_HEIGHT;
+            if (index == hovered || index == state.selectedIndex) {
+                graphics.fill(hits.left + 1, rowY - 1, hits.right - 1, rowY + ROW_HEIGHT - 1, 0x8060A5FA);
+            }
             String completion = hints.get(index).completion().stripTrailing();
             int space = completion.indexOf(' ');
             String command = space < 0 ? completion : completion.substring(0, space);
-            graphics.text(font, command, x + 2, top + index * rowHeight, 0xFF55FFFF, false);
+            graphics.text(font, command, x + 2, rowY, 0xFF55FFFF, false);
             if (space >= 0) {
                 graphics.text(font, completion.substring(space), x + 2 + font.width(command),
-                        top + index * rowHeight, 0xFFAAAAAA, false);
+                        rowY, 0xFFAAAAAA, false);
             }
         }
+    }
+
+    private static List<Hint> displayedHints(State state, String input) {
+        if (state.lastCompletion != null && input.equals(state.lastCompletion)
+                && !state.hints.isEmpty()) {
+            return state.hints;
+        }
+        state.selectedIndex = -1;
+        state.lastCompletion = null;
+        return hints(input);
     }
 
     private static void add(LinkedHashMap<String, Hint> hints, String completion, String query) {
@@ -103,5 +161,22 @@ public final class ChatHintController {
     }
 
     public record Hint(String completion) {
+    }
+
+    private static final class State {
+        private String baseInput = "";
+        private String lastCompletion;
+        private int selectedIndex = -1;
+        private List<Hint> hints = List.of();
+        private HitBox hits;
+    }
+
+    private record HitBox(int left, int top, int right, int bottom) {
+        private int rowAt(double mouseX, double mouseY) {
+            if (mouseX < left || mouseX >= right || mouseY < top + 2 || mouseY >= bottom - 2) {
+                return -1;
+            }
+            return (int) ((mouseY - top - 2) / ROW_HEIGHT);
+        }
     }
 }

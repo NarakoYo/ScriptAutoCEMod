@@ -3,6 +3,8 @@
   "key.categories.scriptautoce.script_ui": "Script Auto CE",
   "screen.scriptautoce.library": "脚本库",
   "screen.scriptautoce.search": "搜索脚本",
+  "screen.scriptautoce.search_results": "全局搜索：找到 %s 个结果（%s）",
+  "screen.scriptautoce.status_bar": "第 %s / %s 页   脚本：%s 个",
   "screen.scriptautoce.settings": "设置",
   "screen.scriptautoce.refresh": "刷新",
   "screen.scriptautoce.run": "运行",
@@ -67,6 +69,7 @@
   "message.scriptautoce.job_finished": "任务已完成",
   "message.scriptautoce.job_failed": "任务失败：%s",
   "message.scriptautoce.job_cancelled": "任务已取消",
+  "message.scriptautoce.job_interrupted": "%s：%s",
   "message.scriptautoce.server_error": "服务端错误：%s（%s:%s）",
   "message.scriptautoce.not_found": "未找到脚本：%s",
   "message.scriptautoce.sent_server": "脚本已发送到服务端校验，可用 ##status 查看进度",
@@ -99,4 +102,32 @@
   "command.scriptautoce.started": "已启动任务 %s",
   "command.scriptautoce.reloaded": "Script Auto CE 设置和共享索引已重新加载",
   "command.scriptautoce.player_only": "此命令只能由玩家执行"
+  ,"screen.scriptautoce.job_detail": "任务详情"
+  ,"screen.scriptautoce.job_progress": "进度：%s%%"
+  ,"screen.scriptautoce.job_command": "当前命令：%s"
+  ,"screen.scriptautoce.job_line": "脚本行号：%s"
+  ,"screen.scriptautoce.job_technical_detail": "技术详情：%s"
+  ,"screen.scriptautoce.no_logs": "没有日志输出"
+  ,"job.scriptautoce.reason.running": "运行中"
+  ,"job.scriptautoce.reason.running.description": "任务正在执行"
+  ,"job.scriptautoce.reason.completed": "已完成"
+  ,"job.scriptautoce.reason.completed.description": "脚本已正常执行完成"
+  ,"job.scriptautoce.reason.user_cancelled": "用户取消"
+  ,"job.scriptautoce.reason.user_cancelled.description": "任务被玩家或命令主动停止"
+  ,"job.scriptautoce.reason.external_disconnect": "连接中断"
+  ,"job.scriptautoce.reason.external_disconnect.description": "玩家离开服务器或连接发生中断"
+  ,"job.scriptautoce.reason.external_emergency": "服务器环境急停"
+  ,"job.scriptautoce.reason.external_emergency.description": "服务器 tick 时间超过安全阈值，任务已自动停止"
+  ,"job.scriptautoce.reason.limit_exceeded": "执行限制触发"
+  ,"job.scriptautoce.reason.limit_exceeded.description": "达到命令数、运行时间、并发或执行步数限制"
+  ,"job.scriptautoce.reason.script_error": "脚本错误"
+  ,"job.scriptautoce.reason.script_error.description": "脚本在求值或运行过程中发生异常"
+  ,"job.scriptautoce.reason.command_error": "命令执行失败"
+  ,"job.scriptautoce.reason.command_error.description": "Minecraft 命令执行时返回了错误"
+  ,"job.scriptautoce.reason.command_denied": "命令权限拒绝"
+  ,"job.scriptautoce.reason.command_denied.description": "原版权限不足或命令解析被服务器拒绝"
+  ,"job.scriptautoce.reason.policy_blocked": "安全策略拦截"
+  ,"job.scriptautoce.reason.policy_blocked.description": "命令被 Script Auto CE 安全策略禁止"
+  ,"job.scriptautoce.reason.unknown": "未知原因"
+  ,"job.scriptautoce.reason.unknown.description": "任务结束时没有提供结构化原因"
 }

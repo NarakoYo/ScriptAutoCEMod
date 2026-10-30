@@ -10,7 +10,7 @@ import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import net.minecraft.resources.Identifier;
 
 public final class ScriptPayloads {
-    public static final int PROTOCOL_VERSION = 1;
+    public static final int PROTOCOL_VERSION = 2;
     private static final int MAX_STRING = 64 * 1024;
     private static final int MAX_JSON = 256 * 1024;
 
@@ -253,7 +253,10 @@ public final class ScriptPayloads {
             String message,
             int progress,
             String currentCommand,
-            String logsJson
+            String logsJson,
+            String reasonCode,
+            String detail,
+            int line
     ) implements CustomPacketPayload {
         public static final Type<JobEventPayload> TYPE = new Type<>(payloadId("job_event"));
         public static final StreamCodec<RegistryFriendlyByteBuf, JobEventPayload> CODEC = StreamCodec.of(
@@ -264,9 +267,13 @@ public final class ScriptPayloads {
                     buffer.writeVarInt(Math.max(0, payload.progress()));
                     writeString(buffer, payload.currentCommand());
                     writeJson(buffer, payload.logsJson());
+                    writeString(buffer, payload.reasonCode());
+                    writeString(buffer, payload.detail());
+                    buffer.writeVarInt(Math.max(0, payload.line()));
                 },
                 buffer -> new JobEventPayload(readString(buffer), readString(buffer), readString(buffer),
-                        buffer.readVarInt(), readString(buffer), readJson(buffer)));
+                        buffer.readVarInt(), readString(buffer), readJson(buffer), readString(buffer),
+                        readString(buffer), buffer.readVarInt()));
 
         @Override
         public Type<? extends CustomPacketPayload> type() {

@@ -3,6 +3,8 @@
   "key.categories.scriptautoce.script_ui": "Script Auto CE",
   "screen.scriptautoce.library": "Script Library",
   "screen.scriptautoce.search": "Search scripts",
+  "screen.scriptautoce.search_results": "Global search: %s results for \"%s\"",
+  "screen.scriptautoce.status_bar": "Page %s / %s   Scripts: %s",
   "screen.scriptautoce.settings": "Settings",
   "screen.scriptautoce.refresh": "Refresh",
   "screen.scriptautoce.run": "Run",
@@ -67,6 +69,7 @@
   "message.scriptautoce.job_finished": "Job finished",
   "message.scriptautoce.job_failed": "Job failed: %s",
   "message.scriptautoce.job_cancelled": "Job cancelled",
+  "message.scriptautoce.job_interrupted": "%s: %s",
   "message.scriptautoce.server_error": "Server error: %s (%s:%s)",
   "message.scriptautoce.not_found": "Script not found: %s",
   "message.scriptautoce.sent_server": "Script sent to the server for validation. Use ##status to track it.",
@@ -99,4 +102,32 @@
   "command.scriptautoce.started": "Started job %s",
   "command.scriptautoce.reloaded": "Script Auto CE settings and shared index reloaded",
   "command.scriptautoce.player_only": "This command requires a player"
+  ,"screen.scriptautoce.job_detail": "Job details"
+  ,"screen.scriptautoce.job_progress": "Progress: %s%%"
+  ,"screen.scriptautoce.job_command": "Current command: %s"
+  ,"screen.scriptautoce.job_line": "Script line: %s"
+  ,"screen.scriptautoce.job_technical_detail": "Technical detail: %s"
+  ,"screen.scriptautoce.no_logs": "No log output"
+  ,"job.scriptautoce.reason.running": "Running"
+  ,"job.scriptautoce.reason.running.description": "The task is currently executing"
+  ,"job.scriptautoce.reason.completed": "Completed"
+  ,"job.scriptautoce.reason.completed.description": "The script finished successfully"
+  ,"job.scriptautoce.reason.user_cancelled": "Cancelled by user"
+  ,"job.scriptautoce.reason.user_cancelled.description": "The task was stopped by a player or command"
+  ,"job.scriptautoce.reason.external_disconnect": "Disconnected"
+  ,"job.scriptautoce.reason.external_disconnect.description": "The player left or the connection was interrupted"
+  ,"job.scriptautoce.reason.external_emergency": "Server emergency stop"
+  ,"job.scriptautoce.reason.external_emergency.description": "Server tick time exceeded the safety threshold"
+  ,"job.scriptautoce.reason.limit_exceeded": "Execution limit exceeded"
+  ,"job.scriptautoce.reason.limit_exceeded.description": "A command, runtime, concurrency or operation limit was reached"
+  ,"job.scriptautoce.reason.script_error": "Script error"
+  ,"job.scriptautoce.reason.script_error.description": "The script failed while evaluating or executing"
+  ,"job.scriptautoce.reason.command_error": "Command error"
+  ,"job.scriptautoce.reason.command_error.description": "A Minecraft command returned an execution error"
+  ,"job.scriptautoce.reason.command_denied": "Command denied"
+  ,"job.scriptautoce.reason.command_denied.description": "The server rejected the command because of permission or syntax"
+  ,"job.scriptautoce.reason.policy_blocked": "Blocked by policy"
+  ,"job.scriptautoce.reason.policy_blocked.description": "The command was blocked by Script Auto CE safety policy"
+  ,"job.scriptautoce.reason.unknown": "Unknown reason"
+  ,"job.scriptautoce.reason.unknown.description": "No structured reason was reported"
 }

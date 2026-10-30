@@ -42,7 +42,7 @@ public final class ScriptLibraryScreen extends Screen {
         searchBox = new EditBox(font, 4, 34, 135, 20,
                 Component.translatable("screen.scriptautoce.search"));
         searchBox.setHint(Component.translatable("screen.scriptautoce.search"));
-        searchBox.setTextColor(0xFFFFFF);
+        searchBox.setTextColor(0xFFFFFFFF);
         searchBox.setValue(search);
         searchBox.setResponder(value -> {
             search = value;
@@ -127,7 +127,7 @@ public final class ScriptLibraryScreen extends Screen {
         int left = 116;
         int rightWidth = width - left - 4;
         addRenderableWidget(new StringWidget(left, 60, rightWidth, 10,
-                Component.literal(breadcrumb()).withStyle(ChatFormatting.GRAY), font));
+                listHeader().copy().withStyle(ChatFormatting.GRAY), font));
         List<LocalScriptRepository.Summary> entries = visibleLocalScripts();
         int startY = 76;
         int rowHeight = 22;
@@ -142,7 +142,8 @@ public final class ScriptLibraryScreen extends Screen {
             int runWidth = 42;
             int shareWidth = 42;
             int nameWidth = Math.max(80, rightWidth - runWidth - shareWidth - 6);
-            addRenderableWidget(Button.builder(Component.literal(clip(script.fileName(), nameWidth - 8)),
+            String displayName = search.isBlank() ? script.fileName() : script.relativePath();
+            addRenderableWidget(Button.builder(Component.literal(clip(displayName, nameWidth - 8)),
                     button -> openEditor(script.id()))
                     .bounds(left, y, nameWidth, 18).build());
             addRenderableWidget(Button.builder(Component.translatable("screen.scriptautoce.run"),
@@ -205,8 +206,9 @@ public final class ScriptLibraryScreen extends Screen {
                 JobEventPayload job = entries.get(index);
                 int stopWidth = 48;
                 int nameWidth = width - 11 - stopWidth;
-                addRenderableWidget(Button.builder(jobLabel(job), button -> {
-                }).bounds(4, y, nameWidth, 18).build());
+                addRenderableWidget(Button.builder(jobLabel(job),
+                        button -> minecraft.setScreenAndShow(new ScriptJobDetailScreen(this, job)))
+                        .bounds(4, y, nameWidth, 18).build());
                 addRenderableWidget(Button.builder(Component.translatable("screen.scriptautoce.stop"),
                         button -> ClientNetworkController.stopJob(job.jobId()))
                         .bounds(7 + nameWidth, y, stopWidth, 18).build());
@@ -232,8 +234,8 @@ public final class ScriptLibraryScreen extends Screen {
         }).bounds(31, footerY, 24, 16).build());
         next.active = page < maxPage;
         addRenderableWidget(new StringWidget(60, footerY + 3, width - 130, 10,
-                Component.literal((page + 1) + " / " + (maxPage + 1) + "   " + scriptRootStatus())
-                        .withStyle(ChatFormatting.GRAY), font));
+                Component.translatable("screen.scriptautoce.status_bar",
+                        page + 1, maxPage + 1, total).withStyle(ChatFormatting.GRAY), font));
         addRenderableWidget(Button.builder(Component.translatable("gui.done"), button -> onClose())
                 .bounds(width - 64, footerY, 60, 16).build());
     }
@@ -321,8 +323,12 @@ public final class ScriptLibraryScreen extends Screen {
                 + currentFolder.replace("/", " / ");
     }
 
-    private String scriptRootStatus() {
-        return "Scripts: " + ClientUiState.localScripts().size();
+    private Component listHeader() {
+        if (search.isBlank()) {
+            return Component.literal(breadcrumb());
+        }
+        return Component.translatable("screen.scriptautoce.search_results",
+                visibleLocalScripts().size(), search);
     }
 
     private int effectivePageSize(int startY) {
@@ -342,15 +348,11 @@ public final class ScriptLibraryScreen extends Screen {
     }
 
     private Component jobLabel(JobEventPayload job) {
-        ChatFormatting color = switch (job.eventType()) {
-            case "failed" -> ChatFormatting.RED;
-            case "cancelled" -> ChatFormatting.YELLOW;
-            case "finished" -> ChatFormatting.GREEN;
-            default -> ChatFormatting.AQUA;
-        };
-        Component type = Component.translatable("job.scriptautoce." + job.eventType());
         return Component.translatable("screen.scriptautoce.job_entry",
-                type, job.progress() + "%", clip(job.message(), width - 120)).withStyle(color);
+                JobReasonDisplay.label(job.reasonCode()),
+                job.progress() + "%",
+                clip(JobReasonDisplay.description(job.reasonCode()).getString(), width - 140))
+                .withStyle(JobReasonDisplay.color(job.reasonCode()));
     }
 
     private static String parentOf(String folder) {
@@ -374,7 +376,8 @@ public final class ScriptLibraryScreen extends Screen {
         } else {
             graphics.fill(4, 58, width - 4, height - 24, 0xFF1E1E1E);
         }
-        graphics.fill(0, height - 20, width, height, 0xFF007ACC);
+        graphics.fill(0, height - 20, width, height - 19, 0xFF3B82F6);
+        graphics.fill(0, height - 19, width, height, 0xFF1F2937);
     }
 
     @Override

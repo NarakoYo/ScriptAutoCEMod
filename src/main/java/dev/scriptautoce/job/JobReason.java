@@ -1,0 +1,15 @@
+package dev.scriptautoce.job;
+
+public enum JobReason {
+    RUNNING,
+    COMPLETED,
+    USER_CANCELLED,
+    EXTERNAL_DISCONNECT,
+    EXTERNAL_EMERGENCY,
+    LIMIT_EXCEEDED,
+    SCRIPT_ERROR,
+    COMMAND_ERROR,
+    COMMAND_DENIED,
+    POLICY_BLOCKED,
+    UNKNOWN
+}

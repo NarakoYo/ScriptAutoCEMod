@@ -8,16 +8,20 @@ public final class ConfigPaths {
     private ConfigPaths() {
     }
 
-    public static Path root() {
+    public static Path configRoot() {
         return FabricLoader.getInstance().getConfigDir().resolve(ScriptAutoCe.MOD_ID);
     }
 
     public static Path client() {
-        return root().resolve("client");
+        return configRoot().resolve("client");
     }
 
     public static Path server() {
-        return root().resolve("server");
+        return configRoot().resolve("server");
+    }
+
+    public static Path gameRoot() {
+        return FabricLoader.getInstance().getGameDir().resolve("ScriptAutoCE");
     }
 
     public static Path clientSettings() {
@@ -25,7 +29,7 @@ public final class ConfigPaths {
     }
 
     public static Path localScripts() {
-        return client().resolve("scripts");
+        return gameRoot().resolve("Scripts");
     }
 
     public static Path downloadCache() {
@@ -37,14 +41,14 @@ public final class ConfigPaths {
     }
 
     public static Path sharedIndex() {
-        return server().resolve("shared-index.json");
+        return gameRoot().resolve("Shared").resolve("index.json");
     }
 
     public static Path sharedScripts() {
-        return server().resolve("shared");
+        return gameRoot().resolve("Shared").resolve("Scripts");
     }
 
     public static Path auditLogs() {
-        return server().resolve("logs");
+        return gameRoot().resolve("Logs");
     }
 }

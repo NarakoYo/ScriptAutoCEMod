@@ -16,13 +16,25 @@
     ],
     "client": [
       "dev.scriptautoce.client.ScriptAutoCeClient"
+    ],
+    "modmenu": [
+      "dev.scriptautoce.client.integration.ScriptAutoCeModMenu"
     ]
   },
+  "mixins": [
+    {
+      "config": "scriptautoce.client.mixins.json",
+      "environment": "client"
+    }
+  ],
   "depends": {
     "fabricloader": ">=0.19.3",
     "minecraft": "26.2",
     "java": ">=25",
     "fabric-api": ">=${fabric_api_min_version}",
     "carpet": ">=26.2"
+  },
+  "suggests": {
+    "modmenu": ">=20.0.0"
   }
 }

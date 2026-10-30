@@ -3,14 +3,19 @@ package dev.scriptautoce.client.ui;
 import dev.scriptautoce.config.ClientSettings;
 import dev.scriptautoce.network.ScriptPayloads.JobEventPayload;
 import dev.scriptautoce.storage.BootstrapFiles;
+import dev.scriptautoce.storage.JsonFiles;
 import dev.scriptautoce.storage.LocalScriptRepository;
 import dev.scriptautoce.storage.SharedScriptStore;
+import com.google.gson.reflect.TypeToken;
+import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import net.minecraft.client.Minecraft;
+import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.MutableComponent;
 
 public final class ClientUiState {
     private static ClientSettings settings = ClientSettings.defaults();
@@ -18,6 +23,9 @@ public final class ClientUiState {
     private static final List<LocalScriptRepository.Summary> LOCAL_SCRIPTS = new ArrayList<>();
     private static final List<SharedScriptStore.Info> SHARED_SCRIPTS = new ArrayList<>();
     private static final Map<String, JobEventPayload> JOBS = new LinkedHashMap<>();
+    private static final Map<String, List<String>> JOB_LOGS = new LinkedHashMap<>();
+    private static final Type STRING_LIST_TYPE = new TypeToken<List<String>>() {
+    }.getType();
     private static boolean serverAvailable;
     private static boolean sharingEnabled;
     private static int serverMaxSourceBytes = 64 * 1024;
@@ -110,14 +118,68 @@ public final class ClientUiState {
         }
     }
 
+    public static List<String> consumeNewLogs(JobEventPayload event) {
+        List<String> current;
+        try {
+            current = JsonFiles.GSON.fromJson(event.logsJson(), STRING_LIST_TYPE);
+        } catch (RuntimeException exception) {
+            current = List.of();
+        }
+        if (current == null) {
+            current = List.of();
+        }
+        List<String> previous = JOB_LOGS.getOrDefault(event.jobId(), List.of());
+        List<String> result = new ArrayList<>();
+        if (current.size() > previous.size()
+                && current.subList(0, previous.size()).equals(previous)) {
+            result.addAll(current.subList(previous.size(), current.size()));
+        } else if (!current.equals(previous)) {
+            int common = 0;
+            while (common < previous.size() && common < current.size()
+                    && previous.get(common).equals(current.get(common))) {
+                common++;
+            }
+            result.addAll(current.subList(Math.min(common, current.size()), current.size()));
+        }
+        JOB_LOGS.put(event.jobId(), List.copyOf(current));
+        return List.copyOf(result);
+    }
+
     public static void clearJobs() {
         JOBS.clear();
+        JOB_LOGS.clear();
+    }
+
+    public enum MessageTone {
+        INFO(ChatFormatting.AQUA, ChatFormatting.WHITE),
+        SUCCESS(ChatFormatting.GREEN, ChatFormatting.GREEN),
+        WARNING(ChatFormatting.YELLOW, ChatFormatting.YELLOW),
+        ERROR(ChatFormatting.RED, ChatFormatting.RED),
+        MUTED(ChatFormatting.DARK_AQUA, ChatFormatting.GRAY);
+
+        private final ChatFormatting prefix;
+        private final ChatFormatting text;
+
+        MessageTone(ChatFormatting prefix, ChatFormatting text) {
+            this.prefix = prefix;
+            this.text = text;
+        }
     }
 
     public static void message(String message) {
+        message(MessageTone.INFO, message);
+    }
+
+    public static void message(MessageTone tone, String message) {
+        message(tone, Component.literal(message));
+    }
+
+    public static void message(MessageTone tone, Component message) {
         Minecraft client = Minecraft.getInstance();
         if (client.player != null) {
-            client.player.sendSystemMessage(Component.literal("[Script Auto CE] " + message));
+            MutableComponent component = Component.literal("[Script Auto CE] ").withStyle(tone.prefix);
+            component.append(message.copy().withStyle(tone.text));
+            client.player.sendSystemMessage(component);
         }
     }
 

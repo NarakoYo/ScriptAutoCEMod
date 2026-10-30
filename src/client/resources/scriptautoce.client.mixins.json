@@ -1,0 +1,14 @@
+{
+  "required": true,
+  "minVersion": "0.8.7",
+  "package": "dev.scriptautoce.mixin.client",
+  "compatibilityLevel": "JAVA_25",
+  "mixins": [],
+  "client": [
+    "ChatScreenMixin",
+    "MultiLineEditBoxSyntaxMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}

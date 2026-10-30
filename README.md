@@ -37,23 +37,41 @@ user-directory paths, hostnames and email addresses before a repository commit.
 ## Usage
 
 - Press `F8` to open the script library.
+- While typing `##` in chat, a colored command panel appears above the input; press `Tab` to complete
+  the first matching command. Script IDs also complete after `##run`, `##share`, `##download` and `##stop`.
+- Set the library shortcut from the mod settings screen or Controls. Both use the same Fabric
+  `KeyMapping`, and changes are written to the normal Minecraft options.
+- If Mod Menu is installed, Script Auto CE exposes the same settings screen from its mod entry.
 - Use local, shared and running filters, or create and edit `.sace` scripts in the built-in editor.
 - `##list`, `##run <name> [key=value...]`, `##stop`, `##status`, `##share <local>` and
   `##download <shared>` are intercepted by the client and are not sent to chat.
 - Server operators can use `/scriptautoce list|run|status|stop|reload|config`.
 
-Typing `##` or `##help` prints the available commands. Plain `##` text does not have Minecraft's native
-tab-completion; successful runs, errors and policy rejections are reported in chat.
+Successful operations are green, warnings are yellow, errors are red, script log output is gray, and
+status information is aqua.
 
-The mod creates `config/scriptautoce/client` and `config/scriptautoce/server`, including examples, the
-language guide, settings, shared scripts and audit logs. Existing files are never overwritten.
+Script files live under the game root in a deliberately visible directory:
+
+```text
+ScriptAutoCE/
+  Scripts/       editable local scripts, nested folders and Unicode names supported
+  Shared/        server shared-script storage
+  Examples/      bundled examples
+  Logs/          server audit logs
+  LANGUAGE.md
+  语言文档.md
+```
+
+Only settings remain under `config/scriptautoce`. Existing scripts from older versions are copied into
+the new layout without deleting the originals. Existing files are never overwritten.
 
 See [the bundled DSL guide](src/main/resources/assets/scriptautoce/docs/language.md) for syntax and safety
 rules.
 
 ### Fake-player example
 
-`spawn_10_fake_players.sace` is copied into the first-run script directory. It runs:
+The fake-player example is copied into the first-run script directory as
+`ScriptAutoCE/Scripts/示例/生成10个假人.sace`. It runs:
 
 ```text
 let spawn = pos()

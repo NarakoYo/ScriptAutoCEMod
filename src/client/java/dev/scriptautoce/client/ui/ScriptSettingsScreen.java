@@ -1,5 +1,6 @@
 package dev.scriptautoce.client.ui;
 
+import com.mojang.blaze3d.platform.InputConstants;
 import dev.scriptautoce.ExecutionMode;
 import dev.scriptautoce.client.network.ClientNetworkController;
 import dev.scriptautoce.config.ClientSettings;
@@ -10,7 +11,9 @@ import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.components.StringWidget;
 import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.input.KeyEvent;
 import net.minecraft.network.chat.Component;
+import org.lwjgl.glfw.GLFW;
 
 public final class ScriptSettingsScreen extends Screen {
     private final Screen parent;
@@ -20,6 +23,8 @@ public final class ScriptSettingsScreen extends Screen {
     private EditBox runtimeTicks;
     private String status = "";
     private StringWidget statusWidget;
+    private Button shortcutButton;
+    private boolean listeningForKey;
 
     public ScriptSettingsScreen(Screen parent) {
         super(Component.translatable("screen.scriptautoce.settings"));
@@ -59,6 +64,20 @@ public final class ScriptSettingsScreen extends Screen {
             ClientUiState.updateSettings(clientSettings);
             button.setMessage(confirmLabel());
         }).bounds(x, y + 26, 190, 20).build());
+        shortcutButton = addRenderableWidget(Button.builder(shortcutLabel(), button -> {
+            listeningForKey = true;
+            status = Component.translatable("screen.scriptautoce.settings.shortcutListening").getString();
+            statusWidget.setMessage(Component.literal(status));
+            button.setMessage(shortcutLabel());
+        }).bounds(x, y + 52, 150, 20).build());
+        addRenderableWidget(Button.builder(Component.translatable("screen.scriptautoce.settings.resetKey"),
+                button -> {
+                    ClientNetworkController.resetOpenLibraryKey();
+                    listeningForKey = false;
+                    shortcutButton.setMessage(shortcutLabel());
+                    status = Component.translatable("screen.scriptautoce.settings.shortcutReset").getString();
+                    statusWidget.setMessage(Component.literal(status));
+                }).bounds(x + 155, y + 52, 35, 20).build());
 
         addRenderableWidget(Button.builder(serverSharingLabel(), button -> {
             serverSettings = new ServerSettings(!serverSettings.sharingEnabled(), serverSettings.maxSourceBytes(),
@@ -135,6 +154,30 @@ public final class ScriptSettingsScreen extends Screen {
     private Component serverSharingLabel() {
         return Component.translatable("screen.scriptautoce.settings.sharing",
                 Component.translatable(serverSettings.sharingEnabled() ? "options.on" : "options.off"));
+    }
+
+    private Component shortcutLabel() {
+        return listeningForKey
+                ? Component.translatable("screen.scriptautoce.settings.shortcutListening")
+                : Component.translatable("screen.scriptautoce.settings.shortcut",
+                ClientNetworkController.openLibraryKey().getTranslatedKeyMessage());
+    }
+
+    @Override
+    public boolean keyPressed(KeyEvent event) {
+        if (listeningForKey) {
+            if (event.key() == GLFW.GLFW_KEY_ESCAPE) {
+                listeningForKey = false;
+            } else {
+                ClientNetworkController.setOpenLibraryKey(InputConstants.getKey(event));
+                listeningForKey = false;
+                status = Component.translatable("screen.scriptautoce.settings.shortcutSaved").getString();
+                statusWidget.setMessage(Component.literal(status));
+            }
+            shortcutButton.setMessage(shortcutLabel());
+            return true;
+        }
+        return super.keyPressed(event);
     }
 
     @Override

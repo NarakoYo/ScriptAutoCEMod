@@ -9,6 +9,7 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
+import net.minecraft.commands.SharedSuggestionProvider;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.server.permissions.Permissions;
@@ -24,10 +25,22 @@ public final class ScriptAutoCeCommand {
                 .then(Commands.literal("stop")
                         .executes(context -> stopAllOwned(context.getSource()))
                         .then(Commands.argument("job", StringArgumentType.word())
+                                .suggests((context, builder) -> {
+                                    ServerPlayer player = context.getSource().getPlayer();
+                                    if (player == null) {
+                                        return builder.buildFuture();
+                                    }
+                                    return SharedSuggestionProvider.suggest(
+                                            ServerRuntime.get().jobs().snapshots(player).stream()
+                                                    .map(JobEventPayload::jobId).toList(), builder);
+                                })
                                 .executes(context -> stop(context.getSource(),
                                         StringArgumentType.getString(context, "job")))))
                 .then(Commands.literal("run")
                         .then(Commands.argument("script", StringArgumentType.word())
+                                .suggests((context, builder) -> SharedSuggestionProvider.suggest(
+                                        ServerRuntime.get().sharedScripts().list("").stream()
+                                                .map(SharedScriptStore.Info::id).toList(), builder))
                                 .executes(context -> run(context.getSource(),
                                         StringArgumentType.getString(context, "script"), ""))
                                 .then(Commands.argument("arguments", StringArgumentType.greedyString())
@@ -43,10 +56,10 @@ public final class ScriptAutoCeCommand {
 
     private static int list(CommandSourceStack source) {
         var entries = ServerRuntime.get().sharedScripts().list("");
-        source.sendSuccess(() -> Component.literal("Shared scripts: " + entries.size()), false);
+        source.sendSuccess(() -> Component.translatable("command.scriptautoce.shared_count", entries.size()), false);
         for (SharedScriptStore.Info entry : entries.stream().limit(50).toList()) {
-            source.sendSuccess(() -> Component.literal("- " + entry.title() + " [" + entry.id() + "] by "
-                    + entry.ownerName() + " r" + entry.revision()), false);
+            source.sendSuccess(() -> Component.translatable("command.scriptautoce.shared_entry",
+                    entry.title(), entry.id(), entry.ownerName(), entry.revision()), false);
         }
         return entries.size();
     }
@@ -57,10 +70,10 @@ public final class ScriptAutoCeCommand {
             return 0;
         }
         var jobs = ServerRuntime.get().jobs().snapshots(player);
-        source.sendSuccess(() -> Component.literal("Your jobs: " + jobs.size()), false);
+        source.sendSuccess(() -> Component.translatable("command.scriptautoce.job_count", jobs.size()), false);
         for (JobEventPayload job : jobs) {
-            source.sendSuccess(() -> Component.literal("- " + job.jobId() + " " + job.eventType()
-                    + " " + job.progress() + "% " + job.message()), false);
+            source.sendSuccess(() -> Component.translatable("command.scriptautoce.job_entry",
+                    job.jobId(), job.eventType(), job.progress(), job.message()), false);
         }
         return jobs.size();
     }
@@ -77,7 +90,7 @@ public final class ScriptAutoCeCommand {
             } catch (RuntimeException ignored) {
             }
         }
-        source.sendSuccess(() -> Component.literal("Stopped active jobs"), false);
+        source.sendSuccess(() -> Component.translatable("command.scriptautoce.stopped"), false);
         return jobs.size();
     }
 
@@ -88,7 +101,7 @@ public final class ScriptAutoCeCommand {
         }
         try {
             ServerRuntime.get().jobs().cancel(player, id);
-            source.sendSuccess(() -> Component.literal("Cancellation requested"), false);
+            source.sendSuccess(() -> Component.translatable("command.scriptautoce.cancel_requested"), false);
             return 1;
         } catch (RuntimeException exception) {
             source.sendFailure(Component.literal(exception.getMessage()));
@@ -107,14 +120,14 @@ public final class ScriptAutoCeCommand {
                         || candidate.title().equalsIgnoreCase(scriptName))
                 .findFirst().orElse(null);
         if (info == null) {
-            source.sendFailure(Component.literal("Shared script not found: " + scriptName));
+            source.sendFailure(Component.translatable("command.scriptautoce.not_found", scriptName));
             return 0;
         }
         try {
             String script = store.download(info.id());
             String arguments = JsonFiles.GSON.toJson(parseArguments(rawArguments));
             ServerJob job = ServerRuntime.get().jobs().start(player, null, script, arguments);
-            source.sendSuccess(() -> Component.literal("Started job " + job.id), false);
+            source.sendSuccess(() -> Component.translatable("command.scriptautoce.started", job.id), false);
             return 1;
         } catch (RuntimeException exception) {
             source.sendFailure(Component.literal(exception.getMessage()));
@@ -124,7 +137,7 @@ public final class ScriptAutoCeCommand {
 
     private static int reload(CommandSourceStack source) {
         ServerRuntime.get().reloadSettings();
-        source.sendSuccess(() -> Component.literal("Script Auto CE settings and shared index reloaded"), true);
+        source.sendSuccess(() -> Component.translatable("command.scriptautoce.reloaded"), true);
         return 1;
     }
 
@@ -136,7 +149,7 @@ public final class ScriptAutoCeCommand {
     private static ServerPlayer requirePlayer(CommandSourceStack source) {
         ServerPlayer player = source.getPlayer();
         if (player == null) {
-            source.sendFailure(Component.literal("This command requires a player"));
+            source.sendFailure(Component.translatable("command.scriptautoce.player_only"));
         }
         return player;
     }

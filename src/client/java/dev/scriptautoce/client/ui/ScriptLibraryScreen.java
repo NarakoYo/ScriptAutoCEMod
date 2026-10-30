@@ -5,6 +5,8 @@ import dev.scriptautoce.network.ScriptPayloads.JobEventPayload;
 import dev.scriptautoce.storage.LocalScriptRepository;
 import dev.scriptautoce.storage.SharedScriptStore;
 import java.util.List;
+import java.util.Locale;
+import net.minecraft.ChatFormatting;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.EditBox;
@@ -21,10 +23,10 @@ public final class ScriptLibraryScreen extends Screen {
 
     private final Screen parent;
     private Filter filter = Filter.LOCAL;
+    private String currentFolder = "";
     private String search = "";
     private int page;
     private EditBox searchBox;
-    private StringWidget searchHint;
 
     public ScriptLibraryScreen(Screen parent) {
         super(Component.translatable("screen.scriptautoce.library"));
@@ -34,24 +36,24 @@ public final class ScriptLibraryScreen extends Screen {
     @Override
     protected void init() {
         clearWidgets();
-        searchBox = new EditBox(font, width / 2 - 210, 38, 190, 20,
+        addRenderableWidget(new StringWidget(10, 10, 110, 10,
+                Component.literal("SCRIPT AUTO CE").withStyle(ChatFormatting.BOLD), font));
+
+        searchBox = new EditBox(font, 4, 34, 135, 20,
                 Component.translatable("screen.scriptautoce.search"));
         searchBox.setHint(Component.translatable("screen.scriptautoce.search"));
         searchBox.setTextColor(0xFFFFFF);
         searchBox.setValue(search);
         searchBox.setResponder(value -> {
             search = value;
-            if (searchHint != null) {
-                searchHint.visible = value.isBlank();
-            }
             page = 0;
             rebuildWidgets();
         });
         addRenderableWidget(searchBox);
-        searchHint = addRenderableWidget(new StringWidget(searchBox.getX() + 4, searchBox.getY() + 6,
-                Math.min(180, font.width(Component.translatable("screen.scriptautoce.search")) + 4), 10,
-                Component.translatable("screen.scriptautoce.search"), font));
-        searchHint.visible = search.isBlank();
+        if (search.isBlank()) {
+            addRenderableWidget(new StringWidget(8, 40, 120, 10,
+                    Component.translatable("screen.scriptautoce.search").withStyle(ChatFormatting.GRAY), font));
+        }
 
         addRenderableWidget(Button.builder(filterLabel(), button -> {
             filter = Filter.values()[(filter.ordinal() + 1) % Filter.values().length];
@@ -59,116 +61,221 @@ public final class ScriptLibraryScreen extends Screen {
             if (filter == Filter.SHARED) {
                 ClientNetworkController.requestShared(search);
             }
-            button.setMessage(filterLabel());
             rebuildWidgets();
-        }).bounds(width / 2 + 40, 38, 90, 20).build());
+        }).bounds(143, 34, 58, 20).build());
 
+        Button newFile = addRenderableWidget(Button.builder(Component.translatable("screen.scriptautoce.newFile"),
+                button -> createScript()).bounds(205, 34, 64, 20).build());
+        newFile.active = filter == Filter.LOCAL;
+        Button newFolder = addRenderableWidget(Button.builder(Component.translatable("screen.scriptautoce.newFolder"),
+                button -> createFolder()).bounds(273, 34, 66, 20).build());
+        newFolder.active = filter == Filter.LOCAL;
         addRenderableWidget(Button.builder(Component.translatable("screen.scriptautoce.settings"),
                 button -> minecraft.setScreenAndShow(new ScriptSettingsScreen(this)))
-                .bounds(width / 2 + 136, 38, 74, 20).build());
-        addRenderableWidget(Button.builder(Component.translatable("screen.scriptautoce.refresh"), button -> {
+                .bounds(343, 34, Math.max(76, width - 347), 20).build());
+        addRenderableWidget(Button.builder(Component.literal("↻"), button -> {
             ClientUiState.refreshLocal();
-            ClientNetworkController.requestShared("");
+            ClientNetworkController.requestShared(search);
             rebuildWidgets();
-        }).bounds(width - 78, 10, 68, 20).build());
-        addLabel((width - font.width(title)) / 2, 11, title);
-        addLabel(8, 11, Component.translatable(ClientUiState.serverAvailable()
-                ? "screen.scriptautoce.mode.server" : "screen.scriptautoce.mode.direct"));
+        }).bounds(width - 74, 8, 66, 18).build());
 
-        addPageEntries();
-        addFooter();
+        if (filter == Filter.LOCAL) {
+            buildFolderSidebar();
+            buildLocalFileList();
+        } else {
+            buildNonLocalList();
+        }
+        buildFooter();
     }
 
-    private void addPageEntries() {
-        List<?> entries = currentEntries();
-        int pageSize = effectivePageSize();
-        int maxPage = Math.max(0, (entries.size() - 1) / pageSize);
+    private void buildFolderSidebar() {
+        int sidebarWidth = 104;
+        int x = 4;
+        int y = 62;
+        Button root = addRenderableWidget(Button.builder(Component.literal("ScriptAutoCE"),
+                button -> {
+                    currentFolder = "";
+                    page = 0;
+                    rebuildWidgets();
+                }).bounds(x, y, sidebarWidth, 18).build());
+        root.active = !currentFolder.isBlank();
+        y += 20;
+
+        if (!currentFolder.isBlank()) {
+            addRenderableWidget(Button.builder(Component.literal(".."), button -> {
+                currentFolder = parentOf(currentFolder);
+                page = 0;
+                rebuildWidgets();
+            }).bounds(x, y, sidebarWidth, 18).build());
+            y += 20;
+        }
+
+        for (String folder : childFolders()) {
+            if (y > height - 58) {
+                break;
+            }
+            addRenderableWidget(Button.builder(Component.literal("> " + folderName(folder)), button -> {
+                currentFolder = folder;
+                page = 0;
+                rebuildWidgets();
+            }).bounds(x, y, sidebarWidth, 18).build());
+            y += 20;
+        }
+    }
+
+    private void buildLocalFileList() {
+        int left = 116;
+        int rightWidth = width - left - 4;
+        addRenderableWidget(new StringWidget(left, 60, rightWidth, 10,
+                Component.literal(breadcrumb()).withStyle(ChatFormatting.GRAY), font));
+        List<LocalScriptRepository.Summary> entries = visibleLocalScripts();
+        int startY = 76;
+        int rowHeight = 22;
+        int pageSize = effectivePageSize(startY);
+        int maxPage = maxPage(entries.size(), pageSize);
         page = Math.min(page, maxPage);
         int start = page * pageSize;
         int end = Math.min(entries.size(), start + pageSize);
-        int y = 72;
+        int y = startY;
         for (int index = start; index < end; index++) {
-            Object entry = entries.get(index);
-            if (entry instanceof LocalScriptRepository.Summary local) {
-                int runWidth = 44;
-                int shareWidth = 44;
-                int mainWidth = width - 11 - runWidth - shareWidth - 4;
-                addRenderableWidget(Button.builder(Component.literal(clip(local.title(), 45)),
-                        button -> minecraft.setScreenAndShow(
-                                new ScriptEditorScreen(this, local.id(), ClientUiState.localRepository().load(local.id()))))
-                        .bounds(4, y, mainWidth, 20).build());
-                addRenderableWidget(Button.builder(Component.translatable("screen.scriptautoce.run"),
-                        button -> openArguments(local.id(), ClientUiState.localRepository().load(local.id())))
-                        .bounds(4 + mainWidth + 3, y, runWidth, 20).build());
-                addRenderableWidget(Button.builder(Component.translatable("screen.scriptautoce.share"),
-                        button -> ClientNetworkController.share(local.id()))
-                        .bounds(4 + mainWidth + runWidth + 6, y, shareWidth, 20).build());
-            } else if (entry instanceof SharedScriptStore.Info shared) {
-                int downloadWidth = 68;
-                int deleteWidth = 48;
-                int mainWidth = width - 16 - downloadWidth - deleteWidth;
-                addRenderableWidget(Button.builder(Component.literal(clip(shared.title() + "  -  "
-                                + shared.ownerName() + "  r" + shared.revision(), 50)),
+            LocalScriptRepository.Summary script = entries.get(index);
+            int runWidth = 42;
+            int shareWidth = 42;
+            int nameWidth = Math.max(80, rightWidth - runWidth - shareWidth - 6);
+            addRenderableWidget(Button.builder(Component.literal(clip(script.fileName(), nameWidth - 8)),
+                    button -> openEditor(script.id()))
+                    .bounds(left, y, nameWidth, 18).build());
+            addRenderableWidget(Button.builder(Component.translatable("screen.scriptautoce.run"),
+                    button -> openArguments(script.id(), ClientUiState.localRepository().load(script.id())))
+                    .bounds(left + nameWidth + 3, y, runWidth, 18).build());
+            addRenderableWidget(Button.builder(Component.translatable("screen.scriptautoce.share"),
+                    button -> ClientNetworkController.share(script.id()))
+                    .bounds(left + nameWidth + runWidth + 6, y, shareWidth, 18).build());
+            y += rowHeight;
+        }
+        if (entries.isEmpty()) {
+            addRenderableWidget(new StringWidget(left, startY + 4, rightWidth, 10,
+                    Component.translatable("screen.scriptautoce.empty").withStyle(ChatFormatting.GRAY), font));
+        }
+    }
+
+    private void buildNonLocalList() {
+        if (filter == Filter.SHARED) {
+            List<SharedScriptStore.Info> entries = filteredShared();
+            int y = 62;
+            int pageSize = effectivePageSize(y);
+            int maxPage = maxPage(entries.size(), pageSize);
+            page = Math.min(page, maxPage);
+            int start = page * pageSize;
+            int end = Math.min(entries.size(), start + pageSize);
+            for (int index = start; index < end; index++) {
+                SharedScriptStore.Info shared = entries.get(index);
+                int downloadWidth = 64;
+                int deleteWidth = 44;
+                int nameWidth = width - 12 - downloadWidth - deleteWidth;
+                addRenderableWidget(Button.builder(Component.literal(clip(
+                                shared.title() + "  -  " + shared.ownerName() + "  r" + shared.revision(),
+                                nameWidth - 8)),
                         button -> ClientNetworkController.downloadShared(shared.id()))
-                        .bounds(4, y, mainWidth, 20).build());
+                        .bounds(4, y, nameWidth, 18).build());
                 addRenderableWidget(Button.builder(Component.translatable("screen.scriptautoce.download"),
                         button -> ClientNetworkController.downloadShared(shared.id()))
-                        .bounds(4 + mainWidth + 3, y, downloadWidth, 20).build());
+                        .bounds(7 + nameWidth, y, downloadWidth, 18).build());
                 addRenderableWidget(Button.builder(Component.translatable("selectServer.delete"),
                         button -> minecraft.setScreenAndShow(new ScriptConfirmScreen(this,
                                 Component.translatable("screen.scriptautoce.delete.title"),
                                 Component.translatable("screen.scriptautoce.delete.message"),
                                 () -> ClientNetworkController.deleteShared(shared.id()))))
-                        .bounds(4 + mainWidth + downloadWidth + 7, y, deleteWidth, 20).build());
-            } else if (entry instanceof JobEventPayload job) {
-                int stopWidth = 50;
-                int mainWidth = width - 11 - stopWidth;
-                Button status = addRenderableWidget(Button.builder(Component.literal(clip(
-                                job.eventType() + "  " + job.progress() + "%  " + job.message(), 50)),
-                        button -> {
-                        }).bounds(4, y, mainWidth, 20).build());
-                status.active = false;
+                        .bounds(7 + nameWidth + downloadWidth, y, deleteWidth, 18).build());
+                y += 22;
+            }
+            if (entries.isEmpty()) {
+                addRenderableWidget(new StringWidget(4, 66, width - 8, 10,
+                        Component.translatable("screen.scriptautoce.empty").withStyle(ChatFormatting.GRAY), font));
+            }
+        } else {
+            List<JobEventPayload> entries = List.copyOf(ClientUiState.jobs().values());
+            int y = 62;
+            int pageSize = effectivePageSize(y);
+            int maxPage = maxPage(entries.size(), pageSize);
+            page = Math.min(page, maxPage);
+            int start = page * pageSize;
+            int end = Math.min(entries.size(), start + pageSize);
+            for (int index = start; index < end; index++) {
+                JobEventPayload job = entries.get(index);
+                int stopWidth = 48;
+                int nameWidth = width - 11 - stopWidth;
+                addRenderableWidget(Button.builder(jobLabel(job), button -> {
+                }).bounds(4, y, nameWidth, 18).build());
                 addRenderableWidget(Button.builder(Component.translatable("screen.scriptautoce.stop"),
                         button -> ClientNetworkController.stopJob(job.jobId()))
-                        .bounds(4 + mainWidth + 3, y, stopWidth, 20).build());
+                        .bounds(7 + nameWidth, y, stopWidth, 18).build());
+                y += 22;
             }
-            y += 24;
-        }
-        if (entries.isEmpty()) {
-            Button empty = addRenderableWidget(Button.builder(
-                    Component.translatable("screen.scriptautoce.empty"), button -> {
-                    }).bounds(4, 72, width - 8, 20).build());
-            empty.active = false;
         }
     }
 
-    private void addFooter() {
-        int maxPage = Math.max(0, (currentEntries().size() - 1) / effectivePageSize());
-        int footerY = Math.max(80, height - 28);
+    private void buildFooter() {
+        int footerY = height - 20;
+        int pageSize = effectivePageSize(filter == Filter.LOCAL ? 76 : 62);
+        int total = filter == Filter.LOCAL ? visibleLocalScripts().size()
+                : filter == Filter.SHARED ? filteredShared().size() : ClientUiState.jobs().size();
+        int maxPage = maxPage(total, pageSize);
         Button previous = addRenderableWidget(Button.builder(Component.literal("<"), button -> {
             page = Math.max(0, page - 1);
             rebuildWidgets();
-        }).bounds(4, footerY, 28, 20).build());
+        }).bounds(4, footerY, 24, 16).build());
         previous.active = page > 0;
         Button next = addRenderableWidget(Button.builder(Component.literal(">"), button -> {
             page = Math.min(maxPage, page + 1);
             rebuildWidgets();
-        }).bounds(width - 32, footerY, 28, 20).build());
+        }).bounds(31, footerY, 24, 16).build());
         next.active = page < maxPage;
-        addRenderableWidget(Button.builder(Component.translatable("screen.scriptautoce.new"), button ->
-                        minecraft.setScreenAndShow(new ScriptEditorScreen(this, null,
-                                "meta name \"new_script\"\n\nlog \"Hello from Script Auto CE\"\n")))
-                .bounds(width / 2 - 140, footerY, 58, 20).build());
+        addRenderableWidget(new StringWidget(60, footerY + 3, width - 130, 10,
+                Component.literal((page + 1) + " / " + (maxPage + 1) + "   " + scriptRootStatus())
+                        .withStyle(ChatFormatting.GRAY), font));
         addRenderableWidget(Button.builder(Component.translatable("gui.done"), button -> onClose())
-                .bounds(width / 2 - 76, footerY, 72, 20).build());
-        String pageText = (page + 1) + " / " + (maxPage + 1);
-        addLabel(width - 35 - font.width(pageText), footerY + 6, Component.literal(pageText));
+                .bounds(width - 64, footerY, 60, 16).build());
+    }
+
+    private void createScript() {
+        minecraft.setScreenAndShow(new ScriptNameScreen(this, false, name -> {
+            String source = "meta name \"" + name.replace("\"", "_") + "\"\n\n"
+                    + "log \"Hello from Script Auto CE\"\n";
+            try {
+                String id = ClientUiState.localRepository().createInFolder(currentFolder, name, source);
+                ClientUiState.refreshLocal();
+                minecraft.setScreenAndShow(new ScriptEditorScreen(this, id, source));
+            } catch (RuntimeException exception) {
+                ClientUiState.message(ClientUiState.MessageTone.ERROR, exception.getMessage());
+                minecraft.setScreenAndShow(this);
+            }
+        }));
+    }
+
+    private void createFolder() {
+        minecraft.setScreenAndShow(new ScriptNameScreen(this, true, name -> {
+            try {
+                currentFolder = ClientUiState.localRepository().createFolder(currentFolder, name);
+                page = 0;
+                ClientUiState.refreshLocal();
+            } catch (RuntimeException exception) {
+                ClientUiState.message(ClientUiState.MessageTone.ERROR, exception.getMessage());
+            }
+            minecraft.setScreenAndShow(this);
+        }));
+    }
+
+    private void openEditor(String id) {
+        minecraft.setScreenAndShow(new ScriptEditorScreen(this, id,
+                ClientUiState.localRepository().load(id)));
     }
 
     private void openArguments(String id, String source) {
         var compilation = dev.scriptautoce.script.ScriptCompiler.compile(id, source);
         if (!compilation.success()) {
-            ClientUiState.message(compilation.diagnostics().getFirst().toString());
+            ClientUiState.message(ClientUiState.MessageTone.ERROR,
+                    compilation.diagnostics().getFirst().toString());
             return;
         }
         if (compilation.script().arguments().isEmpty()) {
@@ -184,38 +291,90 @@ public final class ScriptLibraryScreen extends Screen {
         }
     }
 
-    private List<?> currentEntries() {
-        String query = search.strip().toLowerCase(java.util.Locale.ROOT);
-        return switch (filter) {
-            case LOCAL -> ClientUiState.localScripts().stream()
-                    .filter(script -> query.isBlank()
-                            || script.title().toLowerCase(java.util.Locale.ROOT).contains(query)
-                            || script.id().contains(query))
-                    .toList();
-            case SHARED -> ClientUiState.sharedScripts().stream()
-                    .filter(script -> query.isBlank()
-                            || script.title().toLowerCase(java.util.Locale.ROOT).contains(query)
-                            || script.ownerName().toLowerCase(java.util.Locale.ROOT).contains(query))
-                    .toList();
-            case RUNNING -> ClientUiState.jobs().values().stream().toList();
-        };
+    private List<String> childFolders() {
+        return ClientUiState.localRepository().folders().stream()
+                .filter(folder -> parentOf(folder).equals(currentFolder))
+                .toList();
+    }
+
+    private List<LocalScriptRepository.Summary> visibleLocalScripts() {
+        String query = search.strip().toLowerCase(Locale.ROOT);
+        return ClientUiState.localScripts().stream()
+                .filter(script -> !query.isBlank()
+                        ? script.id().toLowerCase(Locale.ROOT).contains(query)
+                                || script.title().toLowerCase(Locale.ROOT).contains(query)
+                        : script.folder().equals(currentFolder))
+                .toList();
+    }
+
+    private List<SharedScriptStore.Info> filteredShared() {
+        String query = search.strip().toLowerCase(Locale.ROOT);
+        return ClientUiState.sharedScripts().stream()
+                .filter(script -> query.isBlank()
+                        || script.title().toLowerCase(Locale.ROOT).contains(query)
+                        || script.ownerName().toLowerCase(Locale.ROOT).contains(query))
+                .toList();
+    }
+
+    private String breadcrumb() {
+        return currentFolder.isBlank() ? "ScriptAutoCE / Scripts" : "ScriptAutoCE / Scripts / "
+                + currentFolder.replace("/", " / ");
+    }
+
+    private String scriptRootStatus() {
+        return "Scripts: " + ClientUiState.localScripts().size();
+    }
+
+    private int effectivePageSize(int startY) {
+        return Math.max(1, (height - 24 - startY) / 22);
+    }
+
+    private static int maxPage(int total, int pageSize) {
+        return Math.max(0, (total - 1) / pageSize);
     }
 
     private Component filterLabel() {
         return Component.translatable("screen.scriptautoce.filter." + filter.name().toLowerCase());
     }
 
+    private String clip(String value, int pixelWidth) {
+        return font.plainSubstrByWidth(value, Math.max(30, pixelWidth));
+    }
+
+    private Component jobLabel(JobEventPayload job) {
+        ChatFormatting color = switch (job.eventType()) {
+            case "failed" -> ChatFormatting.RED;
+            case "cancelled" -> ChatFormatting.YELLOW;
+            case "finished" -> ChatFormatting.GREEN;
+            default -> ChatFormatting.AQUA;
+        };
+        Component type = Component.translatable("job.scriptautoce." + job.eventType());
+        return Component.translatable("screen.scriptautoce.job_entry",
+                type, job.progress() + "%", clip(job.message(), width - 120)).withStyle(color);
+    }
+
+    private static String parentOf(String folder) {
+        int slash = folder.lastIndexOf('/');
+        return slash < 0 ? "" : folder.substring(0, slash);
+    }
+
+    private static String folderName(String folder) {
+        int slash = folder.lastIndexOf('/');
+        return slash < 0 ? folder : folder.substring(slash + 1);
+    }
+
     @Override
-    public void extractRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float delta) {
-        super.extractRenderState(graphics, mouseX, mouseY, delta);
-        graphics.centeredText(font, title, width / 2, 15, 0xFFFFFF);
-        String mode = ClientUiState.serverAvailable()
-                ? Component.translatable("screen.scriptautoce.mode.server").getString()
-                : Component.translatable("screen.scriptautoce.mode.direct").getString();
-        graphics.text(font, Component.literal(mode), 12, 15, 0xA0A0A0);
-        String pageText = (page + 1) + " / " + (Math.max(0,
-                (currentEntries().size() - 1) / effectivePageSize()) + 1);
-        graphics.text(font, pageText, width / 2 + 130, height - 23, 0xA0A0A0);
+    public void extractBackground(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float delta) {
+        graphics.fill(0, 0, width, height, 0xFF1E1E1E);
+        graphics.fill(0, 0, width, 30, 0xFF252526);
+        graphics.fill(0, 30, width, 56, 0xFF2D2D30);
+        if (filter == Filter.LOCAL) {
+            graphics.fill(4, 60, 108, height - 24, 0xFF252526);
+            graphics.fill(110, 60, width - 4, height - 24, 0xFF1E1E1E);
+        } else {
+            graphics.fill(4, 58, width - 4, height - 24, 0xFF1E1E1E);
+        }
+        graphics.fill(0, height - 20, width, height, 0xFF007ACC);
     }
 
     @Override
@@ -226,19 +385,5 @@ public final class ScriptLibraryScreen extends Screen {
     @Override
     public void onClose() {
         minecraft.setScreenAndShow(parent);
-    }
-
-    private String clip(String value, int maxChars) {
-        String clipped = value.length() <= maxChars ? value : value.substring(0, maxChars - 3) + "...";
-        return font.plainSubstrByWidth(clipped, Math.max(40, width - 140));
-    }
-
-    private int effectivePageSize() {
-        int availableRows = Math.max(1, (height - 108) / 24);
-        return Math.min(ClientUiState.settings().pageSize(), availableRows);
-    }
-
-    private StringWidget addLabel(int x, int y, Component text) {
-        return addRenderableWidget(new StringWidget(x, y, Math.max(20, width - x - 4), 10, text, font));
     }
 }

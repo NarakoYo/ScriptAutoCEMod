@@ -18,19 +18,31 @@ public final class BootstrapFiles {
             Files.createDirectories(ConfigPaths.server());
             Files.createDirectories(ConfigPaths.sharedScripts());
             Files.createDirectories(ConfigPaths.auditLogs());
+            Files.createDirectories(ConfigPaths.gameRoot().resolve("Examples"));
             if (!Files.exists(ConfigPaths.clientSettings())) {
                 dev.scriptautoce.config.ClientSettings.defaults().save();
             }
             if (!Files.exists(ConfigPaths.serverSettings())) {
                 dev.scriptautoce.config.ServerSettings.defaults().save();
             }
-            copyResourceIfMissing("examples/welcome.sace", ConfigPaths.localScripts().resolve("welcome.sace"));
+            migrateOldTree(ConfigPaths.client().resolve("scripts"), ConfigPaths.localScripts());
+            migrateOldTree(ConfigPaths.server().resolve("shared"), ConfigPaths.sharedScripts());
+            Path oldSharedIndex = ConfigPaths.server().resolve("shared-index.json");
+            if (Files.isRegularFile(oldSharedIndex) && !Files.exists(ConfigPaths.sharedIndex())) {
+                Files.createDirectories(ConfigPaths.sharedIndex().getParent());
+                Files.copy(oldSharedIndex, ConfigPaths.sharedIndex(), StandardCopyOption.COPY_ATTRIBUTES);
+            }
+            copyResourceIfMissing("examples/welcome.sace",
+                    ConfigPaths.localScripts().resolve("Examples/welcome.sace"));
             copyResourceIfMissing("examples/spawn_10_fake_players.sace",
-                    ConfigPaths.localScripts().resolve("spawn_10_fake_players.sace"));
-            copyResourceIfMissing("examples/welcome.sace", ConfigPaths.server().resolve("examples/welcome.sace"));
+                    ConfigPaths.localScripts().resolve("示例/生成10个假人.sace"));
+            copyResourceIfMissing("examples/welcome.sace",
+                    ConfigPaths.gameRoot().resolve("Examples/welcome.sace"));
             copyResourceIfMissing("examples/spawn_10_fake_players.sace",
-                    ConfigPaths.server().resolve("examples/spawn_10_fake_players.sace"));
-            copyResourceIfMissing("docs/language.md", ConfigPaths.root().resolve("language.md"));
+                    ConfigPaths.gameRoot().resolve("Examples/生成10个假人.sace"));
+            copyResourceIfMissing("docs/language.md", ConfigPaths.gameRoot().resolve("LANGUAGE.md"));
+            copyResourceIfMissing("docs/language.md", ConfigPaths.gameRoot().resolve("语言文档.md"));
+            copyResourceIfMissing("docs/language.md", ConfigPaths.gameRoot().resolve("README.md"));
         } catch (IOException exception) {
             ScriptAutoCe.LOGGER.error("Could not create Script Auto CE directories", exception);
         }
@@ -48,6 +60,24 @@ public final class BootstrapFiles {
             }
             Files.createDirectories(destination.getParent());
             Files.copy(input, destination, StandardCopyOption.REPLACE_EXISTING);
+        }
+    }
+
+    private static void migrateOldTree(Path sourceRoot, Path destinationRoot) throws IOException {
+        if (!Files.isDirectory(sourceRoot)) {
+            return;
+        }
+        try (var files = Files.walk(sourceRoot)) {
+            files.filter(Files::isRegularFile).forEach(source -> {
+                try {
+                    Path destination = destinationRoot.resolve(sourceRoot.relativize(source));
+                    if (!Files.exists(destination)) {
+                        Files.createDirectories(destination.getParent());
+                        Files.copy(source, destination, StandardCopyOption.COPY_ATTRIBUTES);
+                    }
+                } catch (IOException ignored) {
+                }
+            });
         }
     }
 }

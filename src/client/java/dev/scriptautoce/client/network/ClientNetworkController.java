@@ -6,6 +6,7 @@ import dev.scriptautoce.ExecutionMode;
 import dev.scriptautoce.ScriptAutoCe;
 import dev.scriptautoce.client.script.DirectScriptJobManager;
 import dev.scriptautoce.client.ui.ClientUiState;
+import dev.scriptautoce.client.ui.ClientUiState.MessageTone;
 import dev.scriptautoce.client.ui.ScriptLibraryScreen;
 import dev.scriptautoce.network.ScriptPayloads;
 import dev.scriptautoce.network.ScriptPayloads.ActionResultPayload;
@@ -48,7 +49,6 @@ public final class ClientNetworkController {
     private static final Type SHARED_LIST_TYPE = new TypeToken<List<SharedScriptStore.Info>>() {
     }.getType();
     private static final Map<String, PendingRun> PENDING_RUNS = new HashMap<>();
-    private static final Map<String, String> METADATA_BY_DOWNLOAD = new HashMap<>();
     private static Minecraft client;
     private static DirectScriptJobManager directJobs;
     private static KeyMapping openLibrary;
@@ -67,13 +67,30 @@ public final class ClientNetworkController {
         return directJobs;
     }
 
+    public static KeyMapping openLibraryKey() {
+        if (openLibrary == null) {
+            throw new IllegalStateException("Script Auto CE key mapping is not initialized");
+        }
+        return openLibrary;
+    }
+
+    public static void setOpenLibraryKey(InputConstants.Key key) {
+        openLibraryKey().setKey(key);
+        client.options.save();
+    }
+
+    public static void resetOpenLibraryKey() {
+        setOpenLibraryKey(InputConstants.Type.KEYSYM.getOrCreate(GLFW.GLFW_KEY_F8));
+    }
+
     private static void registerReceivers() {
         ClientPlayNetworking.registerGlobalReceiver(HelloAckPayload.TYPE, (payload, context) -> {
             ClientUiState.setServerAvailable(payload.protocolVersion() == ScriptPayloads.PROTOCOL_VERSION);
             ClientUiState.setServerLimits(payload.maxSourceBytes());
             ClientUiState.setSharingEnabled(payload.sharingEnabled());
             ClientUiState.setServerSettingsJson(payload.settingsJson());
-            ClientUiState.message("Server validation available");
+            ClientUiState.message(MessageTone.SUCCESS,
+                    Component.translatable("message.scriptautoce.server_ready"));
             requestShared("");
         });
         ClientPlayNetworking.registerGlobalReceiver(CatalogPayload.TYPE, (payload, context) -> {
@@ -82,7 +99,7 @@ public final class ClientNetworkController {
         });
         ClientPlayNetworking.registerGlobalReceiver(ScriptContentPayload.TYPE, (payload, context) -> {
             if (payload.error() != null && !payload.error().isBlank()) {
-                ClientUiState.message(payload.error());
+                ClientUiState.message(MessageTone.ERROR, Component.literal(payload.error()));
                 return;
             }
             ClientUiState.localRepository().importSource(payload.id(), payload.source());
@@ -91,7 +108,8 @@ public final class ClientNetworkController {
             if (pending != null) {
                 runSource(payload.source(), pending.arguments());
             } else {
-                ClientUiState.message("Downloaded " + payload.id());
+                ClientUiState.message(MessageTone.SUCCESS,
+                        Component.translatable("message.scriptautoce.downloaded", payload.id()));
             }
         });
         ClientPlayNetworking.registerGlobalReceiver(ActionResultPayload.TYPE, (payload, context) -> {
@@ -99,20 +117,47 @@ public final class ClientNetworkController {
                 try {
                     SharedScriptStore.Info info = JsonFiles.GSON.fromJson(
                             payload.message(), SharedScriptStore.Info.class);
-                    ClientUiState.message("Shared " + info.title() + " r" + info.revision());
+                    ClientUiState.message(MessageTone.SUCCESS,
+                            Component.translatable("message.scriptautoce.shared",
+                                    info.title(), info.revision()));
                 } catch (RuntimeException exception) {
-                    ClientUiState.message("Shared script uploaded");
+                    ClientUiState.message(MessageTone.SUCCESS,
+                            Component.translatable("message.scriptautoce.uploaded"));
                 }
                 requestShared("");
             } else {
-                ClientUiState.message(payload.message());
+                if (payload.success()) {
+                    ClientUiState.message(MessageTone.SUCCESS,
+                            Component.translatable("message.scriptautoce.action_success." + payload.action()));
+                } else {
+                    ClientUiState.message(MessageTone.ERROR,
+                            Component.translatable("message.scriptautoce.action_failed",
+                                    payload.message()));
+                }
             }
         });
-        ClientPlayNetworking.registerGlobalReceiver(JobEventPayload.TYPE, (payload, context) ->
-                ClientUiState.updateJob(payload));
+        ClientPlayNetworking.registerGlobalReceiver(JobEventPayload.TYPE, (payload, context) -> {
+            ClientUiState.updateJob(payload);
+            for (String log : ClientUiState.consumeNewLogs(payload)) {
+                ClientUiState.message(MessageTone.MUTED, log);
+            }
+            switch (payload.eventType()) {
+                case "started" -> ClientUiState.message(MessageTone.INFO,
+                        Component.translatable("message.scriptautoce.job_started", payload.jobId()));
+                case "finished" -> ClientUiState.message(MessageTone.SUCCESS,
+                        Component.translatable("message.scriptautoce.job_finished"));
+                case "failed" -> ClientUiState.message(MessageTone.ERROR,
+                        Component.translatable("message.scriptautoce.job_failed", payload.message()));
+                case "cancelled" -> ClientUiState.message(MessageTone.WARNING,
+                        Component.translatable("message.scriptautoce.job_cancelled"));
+                default -> {
+                }
+            }
+        });
         ClientPlayNetworking.registerGlobalReceiver(ErrorPayload.TYPE, (payload, context) ->
-                ClientUiState.message(payload.message() + (payload.line() > 0
-                        ? " at " + payload.line() + ":" + payload.column() : "")));
+                ClientUiState.message(MessageTone.ERROR,
+                        Component.translatable("message.scriptautoce.server_error",
+                                payload.message(), payload.line(), payload.column())));
         ClientPlayNetworking.registerGlobalReceiver(ServerSettingsPayload.TYPE, (payload, context) ->
                 ClientUiState.setServerSettingsJson(payload.settingsJson()));
     }
@@ -151,7 +196,8 @@ public final class ClientNetworkController {
                 PENDING_RUNS.put(shared.id(), new PendingRun(arguments));
                 downloadShared(shared.id());
             } else {
-                ClientUiState.message("Script not found: " + id);
+                ClientUiState.message(MessageTone.ERROR,
+                        Component.translatable("message.scriptautoce.not_found", id));
             }
             return;
         }
@@ -166,19 +212,22 @@ public final class ClientNetworkController {
                 String id = UUID.randomUUID().toString();
                 ClientPlayNetworking.send(new RunScriptPayload(id, source,
                         JsonFiles.GSON.toJson(arguments)));
-                ClientUiState.message("Sent script to the server for validation. Use ##status to track it.");
+                ClientUiState.message(MessageTone.SUCCESS,
+                        Component.translatable("message.scriptautoce.sent_server"));
             } else {
                 directJobs.start(source, arguments);
-                ClientUiState.message("Started in direct command mode. Use ##status to track it.");
+                ClientUiState.message(MessageTone.WARNING,
+                        Component.translatable("message.scriptautoce.direct_started"));
             }
         } catch (RuntimeException exception) {
-            ClientUiState.message(exception.getMessage());
+            ClientUiState.message(MessageTone.ERROR, Component.literal(exception.getMessage()));
         }
     }
 
     public static void stopJob(String id) {
         if (directJobs.cancel(id)) {
-            ClientUiState.message("Direct job cancelled");
+            ClientUiState.message(MessageTone.WARNING,
+                    Component.translatable("message.scriptautoce.direct_cancelled"));
         } else if (ClientUiState.serverAvailable()) {
             ClientPlayNetworking.send(new CancelJobPayload(id));
         }
@@ -186,7 +235,8 @@ public final class ClientNetworkController {
 
     public static void share(String localId) {
         if (!ClientUiState.serverAvailable() || !ClientUiState.sharingEnabled()) {
-            ClientUiState.message("The server shared library is unavailable");
+            ClientUiState.message(MessageTone.WARNING,
+                    Component.translatable("message.scriptautoce.shared_unavailable"));
             return;
         }
         try {
@@ -196,7 +246,7 @@ public final class ClientNetworkController {
                     .anyMatch(info -> info.id().equals(localId) && info.ownerUuid().equals(playerId));
             ClientPlayNetworking.send(new UploadSharedPayload(ownsShared ? localId : "", source));
         } catch (RuntimeException exception) {
-            ClientUiState.message(exception.getMessage());
+            ClientUiState.message(MessageTone.ERROR, Component.literal(exception.getMessage()));
         }
     }
 
@@ -210,7 +260,8 @@ public final class ClientNetworkController {
         if (ClientUiState.serverAvailable()) {
             ClientPlayNetworking.send(new DownloadSharedPayload(id));
         } else {
-            ClientUiState.message("The server shared library is unavailable");
+            ClientUiState.message(MessageTone.WARNING,
+                    Component.translatable("message.scriptautoce.shared_unavailable"));
         }
     }
 
@@ -255,44 +306,71 @@ public final class ClientNetworkController {
         String[] parts = body.split("\\s+", 2);
         String command = parts.length == 0 ? "help" : parts[0].toLowerCase(Locale.ROOT);
         String rest = parts.length > 1 ? parts[1].strip() : "";
-        switch (command) {
-            case "list" -> listScripts();
-            case "run" -> runChat(rest);
-            case "stop" -> stopFromChat(rest);
-            case "status" -> status();
-            case "share" -> share(rest);
-            case "download" -> downloadShared(rest);
-            case "help" -> help();
-            default -> ClientUiState.message("Unknown command. Use ##help");
+        try {
+            switch (command) {
+                case "list" -> listScripts();
+                case "run" -> runChat(rest);
+                case "stop" -> stopFromChat(rest.isBlank() ? "" : parseFirstArgument(rest).value());
+                case "status" -> status();
+                case "share" -> {
+                    if (rest.isBlank()) {
+                        ClientUiState.message(MessageTone.WARNING,
+                                Component.translatable("message.scriptautoce.usage_share"));
+                    } else {
+                        share(parseFirstArgument(rest).value());
+                    }
+                }
+                case "download" -> {
+                    if (rest.isBlank()) {
+                        ClientUiState.message(MessageTone.WARNING,
+                                Component.translatable("message.scriptautoce.usage_download"));
+                    } else {
+                        downloadShared(parseFirstArgument(rest).value());
+                    }
+                }
+                case "help" -> help();
+                default -> ClientUiState.message(MessageTone.ERROR,
+                        Component.translatable("message.scriptautoce.unknown_command"));
+            }
+        } catch (RuntimeException exception) {
+            ClientUiState.message(MessageTone.ERROR, Component.literal(exception.getMessage()));
         }
         return false;
     }
 
     private static void listScripts() {
         ClientUiState.refreshLocal();
-        ClientUiState.message("Local scripts: " + ClientUiState.localScripts().size());
+        ClientUiState.message(MessageTone.INFO,
+                Component.translatable("message.scriptautoce.local_count",
+                        ClientUiState.localScripts().size()));
         ClientUiState.localScripts().stream().limit(30).forEach(script ->
-                ClientUiState.message(" - " + script.id() + " : " + script.title()));
+                ClientUiState.message(MessageTone.MUTED,
+                        Component.translatable("message.scriptautoce.list_item",
+                                script.id(), script.title())));
         if (ClientUiState.serverAvailable()) {
-            ClientUiState.message("Shared scripts: " + ClientUiState.sharedScripts().size());
+            ClientUiState.message(MessageTone.INFO,
+                    Component.translatable("message.scriptautoce.shared_count",
+                            ClientUiState.sharedScripts().size()));
             requestShared("");
         }
     }
 
     private static void runChat(String rest) {
         if (rest.isBlank()) {
-            ClientUiState.message("Usage: ##run <name> [key=value...]");
+            ClientUiState.message(MessageTone.WARNING,
+                    Component.translatable("message.scriptautoce.usage_run"));
             return;
         }
-        String[] values = rest.split("\\s+");
+        FirstArgument first = parseFirstArgument(rest);
+        String[] values = first.rest().isBlank() ? new String[0] : first.rest().split("\\s+");
         Map<String, String> arguments = new LinkedHashMap<>();
-        for (int index = 1; index < values.length; index++) {
-            int separator = values[index].indexOf('=');
+        for (String value : values) {
+            int separator = value.indexOf('=');
             if (separator > 0) {
-                arguments.put(values[index].substring(0, separator), values[index].substring(separator + 1));
+                arguments.put(value.substring(0, separator), value.substring(separator + 1));
             }
         }
-        runLocal(values[0], arguments);
+        runLocal(first.value(), arguments);
     }
 
     private static void stopFromChat(String id) {
@@ -305,16 +383,22 @@ public final class ClientNetworkController {
 
     private static void status() {
         if (ClientUiState.jobs().isEmpty()) {
-            ClientUiState.message("No running jobs");
+            ClientUiState.message(MessageTone.MUTED,
+                    Component.translatable("message.scriptautoce.no_jobs"));
             return;
         }
-        ClientUiState.jobs().values().forEach(job -> ClientUiState.message(job.jobId() + " "
-                + job.eventType() + " " + job.progress() + "% " + job.message()));
+        ClientUiState.jobs().values().forEach(job -> ClientUiState.message(
+                job.eventType().equals("failed") ? MessageTone.ERROR
+                        : job.eventType().equals("cancelled") ? MessageTone.WARNING : MessageTone.INFO,
+                Component.translatable("message.scriptautoce.job_status",
+                        job.jobId(),
+                        Component.translatable("job.scriptautoce." + job.eventType()),
+                        job.progress(), job.message())));
     }
 
     private static void help() {
-        ClientUiState.message("Commands: ##list | ##run <name> [key=value...] | ##stop [job-id] "
-                + "| ##status | ##share <local-id> | ##download <shared-id> | ##help");
+        ClientUiState.message(MessageTone.MUTED,
+                Component.translatable("message.scriptautoce.help"));
     }
 
     private static SharedScriptStore.Info findShared(String name) {
@@ -327,5 +411,33 @@ public final class ClientNetworkController {
         private PendingRun {
             arguments = Map.copyOf(arguments);
         }
+    }
+
+    private static FirstArgument parseFirstArgument(String input) {
+        String value = input.strip();
+        if (!value.startsWith("\"")) {
+            int space = value.indexOf(' ');
+            return space < 0 ? new FirstArgument(value, "")
+                    : new FirstArgument(value.substring(0, space), value.substring(space + 1).strip());
+        }
+        StringBuilder parsed = new StringBuilder();
+        boolean escaped = false;
+        for (int index = 1; index < value.length(); index++) {
+            char character = value.charAt(index);
+            if (escaped) {
+                parsed.append(character);
+                escaped = false;
+            } else if (character == '\\') {
+                escaped = true;
+            } else if (character == '"') {
+                return new FirstArgument(parsed.toString(), value.substring(index + 1).strip());
+            } else {
+                parsed.append(character);
+            }
+        }
+        throw new IllegalArgumentException("Unclosed quoted script name");
+    }
+
+    private record FirstArgument(String value, String rest) {
     }
 }

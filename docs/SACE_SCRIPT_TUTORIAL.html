@@ -1,0 +1,1719 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Script Auto CE 的 SACE DSL 中文教程、语法参考、内置函数与示例。">
+  <title>SACE 脚本教程 - Script Auto CE</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --top: #20262e;
+      --top-muted: #9da9b7;
+      --side: #f3f4f5;
+      --side-line: #d8dbdf;
+      --text: #20242a;
+      --muted: #606975;
+      --link: #0969da;
+      --accent: #c95d1d;
+      --code: #f6f8fa;
+      --code-line: #d8dee4;
+      --inline-code: #eef1f4;
+      --table-head: #e9edf1;
+      --table-alt: #f7f8fa;
+      --focus: #2f81f7;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      margin: 0;
+      color: var(--text);
+      background: #fff;
+      font: 15px/1.75 -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei",
+        "Noto Sans CJK SC", sans-serif;
+    }
+
+    a {
+      color: var(--link);
+      text-decoration: none;
+    }
+
+    a:hover {
+      text-decoration: underline;
+    }
+
+    .topbar {
+      position: sticky;
+      z-index: 20;
+      top: 0;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      min-height: 58px;
+      padding: 0 28px;
+      color: #fff;
+      background: var(--top);
+      border-bottom: 3px solid var(--accent);
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      min-width: 0;
+      font-weight: 700;
+      letter-spacing: 0;
+    }
+
+    .brand-mark {
+      display: inline-grid;
+      flex: 0 0 auto;
+      place-items: center;
+      width: 32px;
+      height: 32px;
+      color: #20262e;
+      background: #f0b35a;
+      border-radius: 6px;
+      font: 800 13px/1 Consolas, monospace;
+    }
+
+    .brand-title {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .topnav {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      margin-left: 28px;
+      color: var(--top-muted);
+      font-size: 13px;
+    }
+
+    .topnav a {
+      color: inherit;
+    }
+
+    .topnav a:hover {
+      color: #fff;
+      text-decoration: none;
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: 258px minmax(0, 1fr);
+      min-height: calc(100vh - 61px);
+    }
+
+    .sidebar {
+      position: sticky;
+      top: 61px;
+      align-self: start;
+      height: calc(100vh - 61px);
+      overflow-y: auto;
+      padding: 22px 16px 40px;
+      background: var(--side);
+      border-right: 1px solid var(--side-line);
+    }
+
+    .sidebar-title {
+      margin: 0 0 18px 9px;
+      color: #414852;
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    .nav-group {
+      margin: 0 0 20px;
+    }
+
+    .nav-group-title {
+      margin: 0 0 5px 9px;
+      color: #737b85;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+    }
+
+    .sidebar a {
+      display: block;
+      padding: 5px 10px;
+      color: #3e4650;
+      border-left: 3px solid transparent;
+      border-radius: 0 4px 4px 0;
+      font-size: 13px;
+      line-height: 1.45;
+    }
+
+    .sidebar a:hover {
+      color: #111;
+      background: #e4e7ea;
+      text-decoration: none;
+    }
+
+    .sidebar a.active {
+      color: #111;
+      background: #e1e5e9;
+      border-left-color: var(--accent);
+      font-weight: 600;
+    }
+
+    main {
+      min-width: 0;
+      padding: 38px 46px 90px;
+    }
+
+    .content {
+      width: min(100%, 1020px);
+      margin: 0 auto;
+    }
+
+    .intro {
+      margin-bottom: 40px;
+      padding-bottom: 26px;
+      border-bottom: 1px solid #d9dee3;
+    }
+
+    h1,
+    h2,
+    h3,
+    h4 {
+      color: #171b20;
+      letter-spacing: 0;
+      line-height: 1.3;
+    }
+
+    h1 {
+      margin: 0 0 12px;
+      font-size: 34px;
+    }
+
+    h2 {
+      margin: 46px 0 16px;
+      padding-bottom: 9px;
+      font-size: 24px;
+      border-bottom: 1px solid #d8dde3;
+      scroll-margin-top: 82px;
+    }
+
+    h3 {
+      margin: 30px 0 11px;
+      font-size: 18px;
+      scroll-margin-top: 82px;
+    }
+
+    h4 {
+      margin: 20px 0 8px;
+      font-size: 15px;
+    }
+
+    p {
+      margin: 10px 0;
+    }
+
+    .lead {
+      max-width: 780px;
+      margin: 0;
+      color: #525c67;
+      font-size: 16px;
+    }
+
+    .meta-line {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px 18px;
+      margin-top: 16px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    ul,
+    ol {
+      margin: 10px 0;
+      padding-left: 26px;
+    }
+
+    li {
+      margin: 4px 0;
+    }
+
+    code {
+      padding: 2px 5px;
+      color: #a33a00;
+      background: var(--inline-code);
+      border-radius: 3px;
+      font: .92em/1.5 Consolas, "Cascadia Code", "SFMono-Regular", monospace;
+    }
+
+    pre {
+      position: relative;
+      overflow: auto;
+      margin: 14px 0 20px;
+      padding: 42px 18px 16px;
+      background: var(--code);
+      border: 1px solid var(--code-line);
+      border-radius: 5px;
+      tab-size: 4;
+    }
+
+    pre::before {
+      position: absolute;
+      top: 0;
+      right: 0;
+      left: 0;
+      height: 28px;
+      content: "";
+      background: #eaeef2;
+      border-bottom: 1px solid var(--code-line);
+    }
+
+    pre::after {
+      position: absolute;
+      top: 7px;
+      left: 12px;
+      color: #69727c;
+      content: "SACE";
+      font: 700 11px/1 Consolas, monospace;
+      letter-spacing: .08em;
+    }
+
+    pre code {
+      display: block;
+      min-width: max-content;
+      padding: 0;
+      color: #24292f;
+      background: transparent;
+      border-radius: 0;
+      font: 13px/1.65 Consolas, "Cascadia Code", "SFMono-Regular", monospace;
+      white-space: pre;
+    }
+
+    .copy-button {
+      position: absolute;
+      z-index: 2;
+      top: 4px;
+      right: 7px;
+      padding: 2px 8px;
+      color: #4b5560;
+      background: #f6f8fa;
+      border: 1px solid #c8ced5;
+      border-radius: 3px;
+      cursor: pointer;
+      font: 12px/1.4 "Microsoft YaHei", sans-serif;
+    }
+
+    .copy-button:hover {
+      color: #111;
+      background: #fff;
+    }
+
+    .tok-comment {
+      color: #6a737d;
+      font-style: italic;
+    }
+
+    .tok-keyword {
+      color: #cf222e;
+      font-weight: 600;
+    }
+
+    .tok-function {
+      color: #8250df;
+    }
+
+    .tok-string {
+      color: #0a3069;
+    }
+
+    .tok-number {
+      color: #0550ae;
+    }
+
+    .tok-operator {
+      color: #b35900;
+    }
+
+    table {
+      display: block;
+      width: 100%;
+      margin: 14px 0 22px;
+      overflow-x: auto;
+      border-spacing: 0;
+      border-collapse: collapse;
+      font-size: 14px;
+    }
+
+    th,
+    td {
+      min-width: 120px;
+      padding: 8px 11px;
+      text-align: left;
+      vertical-align: top;
+      border: 1px solid #d7dce1;
+    }
+
+    th {
+      background: var(--table-head);
+      font-weight: 700;
+    }
+
+    tbody tr:nth-child(even) {
+      background: var(--table-alt);
+    }
+
+    .note,
+    .warning,
+    .tip {
+      margin: 16px 0;
+      padding: 10px 14px;
+      border-left: 4px solid;
+    }
+
+    .note {
+      background: #eef5ff;
+      border-color: #3576c9;
+    }
+
+    .tip {
+      background: #eef8f1;
+      border-color: #2d8a50;
+    }
+
+    .warning {
+      background: #fff5e8;
+      border-color: #c76a10;
+    }
+
+    .callout-title {
+      display: block;
+      margin-bottom: 3px;
+      font-weight: 700;
+    }
+
+    .signature {
+      margin: 6px 0 8px;
+      padding: 8px 10px;
+      color: #0b4f81;
+      background: #f2f7fb;
+      border: 1px solid #d3e2ee;
+      border-radius: 4px;
+      font: 13px/1.5 Consolas, "Cascadia Code", monospace;
+    }
+
+    .quick-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 18px;
+      margin: 18px 0;
+    }
+
+    .quick-grid h3 {
+      margin-top: 0;
+    }
+
+    .footer {
+      margin-top: 64px;
+      padding-top: 20px;
+      color: #6c747d;
+      border-top: 1px solid #d8dde3;
+      font-size: 12px;
+    }
+
+    .back-top {
+      position: fixed;
+      right: 22px;
+      bottom: 22px;
+      display: none;
+      padding: 7px 10px;
+      color: #fff;
+      background: #374151;
+      border: 0;
+      border-radius: 4px;
+      cursor: pointer;
+      box-shadow: 0 2px 8px rgb(0 0 0 / 18%);
+    }
+
+    .back-top.visible {
+      display: block;
+    }
+
+    :focus-visible {
+      outline: 2px solid var(--focus);
+      outline-offset: 2px;
+    }
+
+    @media (max-width: 900px) {
+      .topbar {
+        padding: 0 18px;
+      }
+
+      .topnav {
+        display: none;
+      }
+
+      .layout {
+        display: block;
+      }
+
+      .sidebar {
+        position: static;
+        height: auto;
+        max-height: none;
+        overflow: visible;
+        padding: 14px 18px;
+        border-right: 0;
+        border-bottom: 1px solid var(--side-line);
+      }
+
+      .sidebar-title {
+        margin-bottom: 10px;
+      }
+
+      .sidebar-groups {
+        display: flex;
+        gap: 18px;
+        overflow-x: auto;
+        padding-bottom: 4px;
+      }
+
+      .nav-group {
+        flex: 0 0 auto;
+        margin-bottom: 0;
+      }
+
+      .nav-group-title {
+        margin-left: 7px;
+      }
+
+      .sidebar a {
+        width: max-content;
+        padding: 3px 8px;
+      }
+
+      main {
+        padding: 28px 24px 70px;
+      }
+
+      .quick-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 560px) {
+      .brand-title {
+        font-size: 14px;
+      }
+
+      main {
+        padding: 24px 16px 64px;
+      }
+
+      h1 {
+        font-size: 28px;
+      }
+
+      h2 {
+        font-size: 21px;
+      }
+
+      .intro {
+        margin-bottom: 30px;
+      }
+
+      pre {
+        margin-right: -4px;
+        margin-left: -4px;
+      }
+    }
+
+    @media print {
+      .topbar,
+      .sidebar,
+      .copy-button,
+      .back-top {
+        display: none !important;
+      }
+
+      .layout {
+        display: block;
+      }
+
+      main {
+        padding: 0;
+      }
+
+      pre {
+        overflow: visible;
+        white-space: pre-wrap;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <span class="brand-mark">SACE</span>
+      <span class="brand-title">Script Auto CE 脚本教程</span>
+    </div>
+    <nav class="topnav" aria-label="页头导航">
+      <a href="#start">快速开始</a>
+      <a href="#statements">语句参考</a>
+      <a href="#functions">函数参考</a>
+      <a href="#recipes">完整示例</a>
+      <a href="#permissions">安全限制</a>
+    </nav>
+  </header>
+
+  <div class="layout">
+    <aside class="sidebar" aria-label="教程目录">
+      <div class="sidebar-title">SACE 脚本教程</div>
+      <div class="sidebar-groups">
+        <section class="nav-group">
+          <div class="nav-group-title">开始</div>
+          <a href="#overview">教程概览</a>
+          <a href="#start">第一个脚本</a>
+          <a href="#files">文件与运行方式</a>
+          <a href="#structure">脚本结构</a>
+        </section>
+        <section class="nav-group">
+          <div class="nav-group-title">基础</div>
+          <a href="#meta">meta 元数据</a>
+          <a href="#arguments">arg 参数</a>
+          <a href="#values">值与类型</a>
+          <a href="#variables">let 与 set</a>
+          <a href="#expressions">表达式与运算符</a>
+          <a href="#interpolation">字符串插值</a>
+        </section>
+        <section class="nav-group">
+          <div class="nav-group-title">语句</div>
+          <a href="#run">run</a>
+          <a href="#log">log</a>
+          <a href="#wait">wait</a>
+          <a href="#if">if / else</a>
+          <a href="#for">for / range</a>
+          <a href="#fail-return">fail / return</a>
+        </section>
+        <section class="nav-group">
+          <div class="nav-group-title">内置函数</div>
+          <a href="#functions">函数总表</a>
+          <a href="#pos">pos()</a>
+          <a href="#block">block()</a>
+          <a href="#players-entities">players() / entities()</a>
+          <a href="#score">score()</a>
+          <a href="#encoding">token / quote / json</a>
+          <a href="#math">min / max / abs / round</a>
+        </section>
+        <section class="nav-group">
+          <div class="nav-group-title">实战</div>
+          <a href="#recipes">示例合集</a>
+          <a href="#fake-players">生成假人</a>
+          <a href="#build-wall">生成墙</a>
+          <a href="#safe-message">安全发送消息</a>
+        </section>
+        <section class="nav-group">
+          <div class="nav-group-title">安全</div>
+          <a href="#permissions">权限模型</a>
+          <a href="#policy">命令策略</a>
+          <a href="#limits">执行限制</a>
+          <a href="#errors">常见错误</a>
+          <a href="#reference">速查表</a>
+        </section>
+      </div>
+    </aside>
+
+    <main>
+      <article class="content">
+        <header class="intro" id="overview">
+          <h1>SACE 脚本教程</h1>
+          <p class="lead">
+            SACE DSL 是 Script Auto CE 使用的受限 Minecraft 命令脚本语言。它可以把多条命令、
+            循环、判断、等待、参数和只读查询组合成一个可重复运行的 <code>.sace</code> 脚本。
+          </p>
+          <div class="meta-line">
+            <span>适用版本：0.1.0-alpha</span>
+            <span>目标游戏：Minecraft 26.2</span>
+            <span>脚本编码：UTF-8</span>
+          </div>
+        </header>
+
+        <section>
+          <h2 id="what-can-it-do">它能做什么</h2>
+          <ul>
+            <li>按顺序运行 Minecraft 命令，例如 <code>setblock</code>、<code>fill</code>、<code>tp</code>、<code>say</code>。</li>
+            <li>使用 <code>for</code> 循环批量生成建筑、区域、实体或连续命令。</li>
+            <li>使用 <code>if / else</code> 根据参数、坐标、方块或计分板结果决定后续操作。</li>
+            <li>使用 <code>wait</code> 按游戏刻暂停，让服务器有时间处理相邻操作。</li>
+            <li>声明运行参数，让同一个脚本支持不同宽度、材质、目标或文本。</li>
+            <li>读取执行玩家位置、方块、在线玩家、附近实体和计分板值。</li>
+            <li>通过脚本库 GUI、<code>##run</code> 聊天指令或 <code>/scriptautoce run</code> 运行。</li>
+          </ul>
+          <div class="note">
+            <span class="callout-title">重要说明</span>
+            首版只提供内置函数，不支持用户自定义函数、类、反射、Java、JavaScript、文件或网络访问。
+          </div>
+        </section>
+
+        <section>
+          <h2 id="start">第一个脚本</h2>
+          <p>在脚本库新建一个 <code>.sace</code> 文件，输入以下内容：</p>
+          <pre><code># 输出一条消息
+meta name "hello_sace"
+
+log "Hello from SACE"
+run "say Script Auto CE is ready"
+</code></pre>
+          <p>
+            保存后，可以在脚本库点击“运行”，也可以执行
+            <code>##run hello_sace</code>。脚本名称默认来自文件或 <code>meta name</code>。
+          </p>
+        </section>
+
+        <section>
+          <h2 id="files">文件与运行方式</h2>
+          <table>
+            <thead>
+              <tr>
+                <th>入口</th>
+                <th>写法</th>
+                <th>说明</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>脚本库</td>
+                <td><code>F8</code></td>
+                <td>浏览、创建、编辑、运行、上传和下载脚本。</td>
+              </tr>
+              <tr>
+                <td>聊天指令</td>
+                <td><code>##run 脚本名称 [键=值...]</code></td>
+                <td>客户端拦截后执行；支持脚本参数和命令提示。</td>
+              </tr>
+              <tr>
+                <td>服务端指令</td>
+                <td><code>/scriptautoce run 脚本名称</code></td>
+                <td>供管理员、控制台或服务端场景使用。</td>
+              </tr>
+            </tbody>
+          </table>
+          <p>脚本目录位于游戏根目录：</p>
+          <pre><code>ScriptAutoCE/
+  Scripts/       本地脚本，可创建子文件夹
+  Shared/        服务端共享脚本
+  Examples/      内置示例
+  SACE脚本教程.html
+</code></pre>
+          <p>
+            文件名、文件夹名和参数值均支持 UTF-8。文件夹可以多层嵌套，脚本扩展名必须是
+            <code>.sace</code>。
+          </p>
+        </section>
+
+        <section>
+          <h2 id="structure">脚本结构</h2>
+          <p>
+            <code>meta</code> 和 <code>arg</code> 用于声明信息，其余语句按从上到下的顺序执行。
+            每条语句通常写一行；分号可选。注释以 <code>#</code> 开始，直到行尾。
+          </p>
+          <pre><code># 1. 元数据
+meta name "example"
+meta on_error "stop"
+
+# 2. 参数
+arg width: int = 4 min 1 max 32
+
+# 3. 执行语句
+let material = "minecraft:stone"
+for x in range(0, width) {
+    run "setblock ~${x} ~ ~ ${material}"
+    wait 1t
+}
+</code></pre>
+          <div class="tip">
+            <span class="callout-title">编写建议</span>
+            先使用小范围和少量命令测试，确认坐标、材质和权限正确后，再扩大循环次数。
+          </div>
+        </section>
+
+        <section>
+          <h2 id="meta">meta 元数据</h2>
+          <p>
+            <code>meta</code> 的格式是 <code>meta 键 "静态值"</code>。元数据值不能使用
+            <code>${...}</code> 插值。
+          </p>
+          <table>
+            <thead>
+              <tr>
+                <th>键</th>
+                <th>可选值</th>
+                <th>作用</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><code>name</code></td>
+                <td>任意文本</td>
+                <td>脚本显示名称。</td>
+              </tr>
+              <tr>
+                <td><code>on_error</code></td>
+                <td><code>stop</code> / <code>continue</code></td>
+                <td>普通命令失败后停止，还是记录日志并继续。默认 <code>stop</code>。</td>
+              </tr>
+              <tr>
+                <td><code>on_denied</code></td>
+                <td><code>stop</code> / <code>skip</code></td>
+                <td>权限不足时停止，还是跳过该命令。默认 <code>stop</code>。</td>
+              </tr>
+              <tr>
+                <td><code>max_commands</code></td>
+                <td>正整数字符串</td>
+                <td>为当前脚本设置更低的命令数量上限。</td>
+              </tr>
+              <tr>
+                <td><code>max_ticks</code></td>
+                <td>正整数字符串</td>
+                <td>为当前脚本设置更低的运行时长上限。</td>
+              </tr>
+            </tbody>
+          </table>
+          <pre><code>meta name "build_wall"
+meta on_error "stop"
+meta on_denied "skip"
+meta max_commands "500"
+meta max_ticks "1200"
+</code></pre>
+          <div class="warning">
+            <span class="callout-title">不能绕过的限制</span>
+            危险命令策略、服务端权限、急停阈值和服务器硬上限不能被脚本元数据覆盖。
+          </div>
+        </section>
+
+        <section>
+          <h2 id="arguments">arg 参数</h2>
+          <p>参数让脚本在运行时接收外部值：</p>
+          <div class="signature">arg 名称: 类型 = 默认值 [min 最小值] [max 最大值]</div>
+          <pre><code>arg width: int = 4 min 1 max 32
+arg height: int = 3 min 1 max 16
+arg material: token = "minecraft:stone"
+arg target: selector = "@p"
+arg message: string = "hello"
+arg center: vec3 = "0 64 0"
+arg enabled: bool = true
+arg speed: double = 1.0 min 0.1 max 10
+</code></pre>
+          <table>
+            <thead>
+              <tr>
+                <th>类型</th>
+                <th>示例</th>
+                <th>可直接插入命令</th>
+                <th>说明</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><code>int</code></td>
+                <td><code>12</code></td>
+                <td>是</td>
+                <td>整数。</td>
+              </tr>
+              <tr>
+                <td><code>double</code></td>
+                <td><code>1.5</code></td>
+                <td>是</td>
+                <td>小数。</td>
+              </tr>
+              <tr>
+                <td><code>bool</code></td>
+                <td><code>true</code> / <code>false</code></td>
+                <td>是</td>
+                <td>布尔值。</td>
+              </tr>
+              <tr>
+                <td><code>string</code></td>
+                <td><code>"hello world"</code></td>
+                <td>否</td>
+                <td>任意文本，插入命令前必须使用 <code>quote()</code> 或 <code>json()</code>。</td>
+              </tr>
+              <tr>
+                <td><code>token</code></td>
+                <td><code>"minecraft:stone"</code></td>
+                <td>是</td>
+                <td>只允许安全标识符字符：字母、数字和 <code>_.:+/=-</code>。</td>
+              </tr>
+              <tr>
+                <td><code>selector</code></td>
+                <td><code>"@a[tag=build]"</code></td>
+                <td>是</td>
+                <td>Minecraft 实体选择器，例如 <code>@a</code>、<code>@e</code>、<code>@p</code>。</td>
+              </tr>
+              <tr>
+                <td><code>vec3</code></td>
+                <td><code>"10 64 -2"</code> 或 <code>"10,64,-2"</code></td>
+                <td>是</td>
+                <td>三个坐标值，内部统一显示为以空格分隔的坐标。</td>
+              </tr>
+            </tbody>
+          </table>
+          <p>运行时可以覆盖默认值：</p>
+          <pre><code>##run build_wall width=8 height=5 material=minecraft:stone</code></pre>
+          <p>
+            <code>min</code> 和 <code>max</code> 只对数值参数生效。未传入参数时使用默认值；
+            传入值超出范围会拒绝运行并显示诊断信息。
+          </p>
+        </section>
+
+        <section>
+          <h2 id="values">值与类型</h2>
+          <table>
+            <thead>
+              <tr>
+                <th>值</th>
+                <th>示例</th>
+                <th>说明</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>整数</td>
+                <td><code>42</code>、<code>-3</code></td>
+                <td>用于坐标、次数、计分和数学计算。</td>
+              </tr>
+              <tr>
+                <td>小数</td>
+                <td><code>1.5</code>、<code>-0.25</code></td>
+                <td>用于速度、距离和小数坐标。</td>
+              </tr>
+              <tr>
+                <td>布尔值</td>
+                <td><code>true</code>、<code>false</code></td>
+                <td>只用于条件判断和布尔运算。</td>
+              </tr>
+              <tr>
+                <td>字符串</td>
+                <td><code>"hello"</code></td>
+                <td>普通文本。命令插值前必须安全编码。</td>
+              </tr>
+              <tr>
+                <td>安全 token</td>
+                <td><code>minecraft:stone</code></td>
+                <td>由 <code>token</code> 参数、<code>token()</code> 或查询函数产生。</td>
+              </tr>
+              <tr>
+                <td>坐标</td>
+                <td><code>pos()</code></td>
+                <td>可直接作为 Minecraft 命令中的三坐标参数。</td>
+              </tr>
+              <tr>
+                <td>列表</td>
+                <td><code>players()</code></td>
+                <td>首版用于显示和日志，暂不支持索引或列表循环。</td>
+              </tr>
+            </tbody>
+          </table>
+        </section>
+
+        <section>
+          <h2 id="variables">let 与 set</h2>
+          <p><code>let</code> 创建变量，<code>set</code> 修改已经存在的变量。</p>
+          <pre><code>let width = 8
+let doubled = width * 2
+set width = width + 1
+
+log "width=${width}, doubled=${doubled}"
+</code></pre>
+          <ul>
+            <li>变量名必须以字母或下划线开始，可包含字母、数字和下划线。</li>
+            <li>不允许重复使用 <code>let</code> 声明同名变量。</li>
+            <li>使用未定义变量会产生脚本错误。</li>
+            <li>字符串使用双引号，支持 <code>\n</code>、<code>\r</code>、<code>\t</code>、<code>\"</code> 和 <code>\\</code>。</li>
+          </ul>
+        </section>
+
+        <section>
+          <h2 id="expressions">表达式与运算符</h2>
+          <p>表达式用于参数默认值、变量、条件和插值。运算优先级从高到低如下：</p>
+          <table>
+            <thead>
+              <tr>
+                <th>类别</th>
+                <th>运算符</th>
+                <th>示例</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>括号与函数</td>
+                <td><code>()</code></td>
+                <td><code>(width + 1) * 2</code></td>
+              </tr>
+              <tr>
+                <td>单目</td>
+                <td><code>!</code>、<code>-</code></td>
+                <td><code>!enabled</code>、<code>-speed</code></td>
+              </tr>
+              <tr>
+                <td>乘除余</td>
+                <td><code>*</code>、<code>/</code>、<code>%</code></td>
+                <td><code>index % 2</code></td>
+              </tr>
+              <tr>
+                <td>加减</td>
+                <td><code>+</code>、<code>-</code></td>
+                <td><code>x + 1</code></td>
+              </tr>
+              <tr>
+                <td>比较</td>
+                <td><code>&lt;</code>、<code>&lt;=</code>、<code>&gt;</code>、<code>&gt;=</code></td>
+                <td><code>score("points", "Alex") &gt;= 10</code></td>
+              </tr>
+              <tr>
+                <td>相等</td>
+                <td><code>==</code>、<code>!=</code></td>
+                <td><code>material != "minecraft:air"</code></td>
+              </tr>
+              <tr>
+                <td>逻辑与</td>
+                <td><code>&amp;&amp;</code></td>
+                <td><code>width &gt; 0 &amp;&amp; height &gt; 0</code></td>
+              </tr>
+              <tr>
+                <td>逻辑或</td>
+                <td><code>||</code></td>
+                <td><code>enabled || width &gt; 8</code></td>
+              </tr>
+            </tbody>
+          </table>
+          <div class="note">
+            <span class="callout-title">类型要正确</span>
+            <code>if</code>、<code>&amp;&amp;</code> 和 <code>||</code> 需要布尔值。不要直接把数字当作条件；
+            应写成 <code>if count &gt; 0</code>。
+          </div>
+        </section>
+
+        <section>
+          <h2 id="interpolation">字符串插值</h2>
+          <p>在字符串中使用 <code>${表达式}</code> 插入变量或函数结果：</p>
+          <pre><code>arg name: string = "Alex"
+arg radius: int = 5
+
+let center = pos()
+log "执行者=${name}, 半径=${radius}, 位置=${center}"
+
+run "say ${name}"                         # 错误：string 不能直接进入命令
+run "say ${quote(name)}"                  # 正确：安全引用
+run "fill ~-${radius} ~ ~-${radius} ~${radius} ~ ~${radius} minecraft:stone"
+</code></pre>
+          <table>
+            <thead>
+              <tr>
+                <th>值类型</th>
+                <th>命令中的处理</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>整数、小数、布尔值</td>
+                <td>直接插入。</td>
+              </tr>
+              <tr>
+                <td>坐标、选择器、安全 token</td>
+                <td>直接插入。</td>
+              </tr>
+              <tr>
+                <td>普通字符串</td>
+                <td>必须使用 <code>quote(value)</code> 或 <code>json(value)</code>。</td>
+              </tr>
+              <tr>
+                <td>列表</td>
+                <td>不能作为单个命令参数直接插入；可写入 <code>log</code>。</td>
+              </tr>
+            </tbody>
+          </table>
+        </section>
+
+        <section>
+          <h2 id="statements">语句参考</h2>
+
+          <h3 id="run">run</h3>
+          <div class="signature">run "Minecraft 命令"</div>
+          <p>执行一条命令，不需要写开头的斜杠。每条 <code>run</code> 只执行一条命令。</p>
+          <pre><code>run "time set day"
+run "weather clear"
+run "setblock ~ ~1 ~ minecraft:glowstone"
+run "execute as @a at @s run say hello"
+</code></pre>
+          <p>
+            命令以发起脚本的玩家权限执行，不会自动获得 OP。服务器策略会递归检查
+            <code>execute ... run ...</code> 内层命令。
+          </p>
+
+          <h3 id="log">log</h3>
+          <div class="signature">log "输出文本"</div>
+          <p>向任务日志输出文本，不执行 Minecraft 命令。日志会显示在脚本库的运行状态中。</p>
+          <pre><code>arg target: selector = "@p"
+
+log "开始生成"
+log "当前位置：${pos()}"
+log "目标：${target}"
+</code></pre>
+
+          <h3 id="wait">wait</h3>
+          <div class="signature">wait 20t</div>
+          <p>暂停指定游戏刻，再继续执行。20 刻通常等于 1 秒。</p>
+          <pre><code>run "setblock ~ ~ ~ minecraft:redstone_block"
+wait 2t
+run "setblock ~ ~ ~ minecraft:air"
+</code></pre>
+          <ul>
+            <li>必须是字面整数，范围 1 到 72000。</li>
+            <li>末尾的 <code>t</code> 可选。</li>
+            <li>等待不会阻塞服务器线程，任务会在后续游戏刻继续。</li>
+          </ul>
+
+          <h3 id="if">if / else</h3>
+          <div class="signature">if 条件 { ... } else { ... }</div>
+          <pre><code>arg enabled: bool = true
+let points = score("points", "@p")
+
+if enabled &amp;&amp; points &gt;= 10 {
+    run "say 条件满足"
+} else if enabled {
+    run "say 分数不足"
+} else {
+    log "脚本已关闭"
+}
+</code></pre>
+
+          <h3 id="for">for / range</h3>
+          <div class="signature">for 变量 in range(起点, 终点[, 步长]) { ... }</div>
+          <p>终点不包含在循环内。默认步长为 1，也可以使用负数倒序。</p>
+          <pre><code>for x in range(0, 5) {
+    run "setblock ~${x} ~ ~ minecraft:stone"
+}
+
+for y in range(3, 0, -1) {
+    run "setblock ~ ~${y} ~ minecraft:glass"
+}
+</code></pre>
+          <p>循环中的 <code>x</code> 是整数变量。不要在循环体内用 <code>set</code> 修改循环变量。</p>
+
+          <h3 id="fail-return">fail / return</h3>
+          <div class="signature">fail "错误说明"<br>return</div>
+          <p><code>fail</code> 立即以脚本错误结束；<code>return</code> 立即以正常完成结束。</p>
+          <pre><code>arg width: int = 4 min 1 max 32
+
+if width &gt; 16 {
+    fail "宽度过大，请缩小范围"
+}
+
+run "say 开始"
+return
+run "say 这行不会执行"
+</code></pre>
+        </section>
+
+        <section>
+          <h2 id="functions">内置函数总表</h2>
+          <p>所有函数都是只读或安全编码函数。函数名区分大小写，参数数量必须完全匹配。</p>
+          <table>
+            <thead>
+              <tr>
+                <th>函数</th>
+                <th>返回</th>
+                <th>作用</th>
+                <th>能否直接插入命令</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><code>pos()</code></td>
+                <td><code>vec3</code></td>
+                <td>执行脚本玩家的当前位置。</td>
+                <td>是</td>
+              </tr>
+              <tr>
+                <td><code>block(x, y, z)</code></td>
+                <td><code>token</code></td>
+                <td>读取指定坐标的方块 ID。</td>
+                <td>是</td>
+              </tr>
+              <tr>
+                <td><code>players()</code></td>
+                <td>玩家名列表</td>
+                <td>获取当前在线玩家名。</td>
+                <td>否</td>
+              </tr>
+              <tr>
+                <td><code>entities(type, radius)</code></td>
+                <td>UUID 列表</td>
+                <td>获取附近实体 UUID。</td>
+                <td>否</td>
+              </tr>
+              <tr>
+                <td><code>score(objective, target)</code></td>
+                <td><code>int</code></td>
+                <td>读取计分板值。</td>
+                <td>是</td>
+              </tr>
+              <tr>
+                <td><code>token(value)</code></td>
+                <td><code>token</code></td>
+                <td>校验并转换成安全命令 token。</td>
+                <td>是</td>
+              </tr>
+              <tr>
+                <td><code>quote(value)</code></td>
+                <td>编码字符串</td>
+                <td>添加双引号并转义内容。</td>
+                <td>是</td>
+              </tr>
+              <tr>
+                <td><code>json(value)</code></td>
+                <td>JSON 字符串</td>
+                <td>把文本编码成 JSON 字符串。</td>
+                <td>是</td>
+              </tr>
+              <tr>
+                <td><code>min(a, b)</code></td>
+                <td>小数</td>
+                <td>取较小值。</td>
+                <td>是</td>
+              </tr>
+              <tr>
+                <td><code>max(a, b)</code></td>
+                <td>小数</td>
+                <td>取较大值。</td>
+                <td>是</td>
+              </tr>
+              <tr>
+                <td><code>abs(value)</code></td>
+                <td>数字</td>
+                <td>取绝对值。</td>
+                <td>是</td>
+              </tr>
+              <tr>
+                <td><code>round(value)</code></td>
+                <td><code>int</code></td>
+                <td>四舍五入到整数。</td>
+                <td>是</td>
+              </tr>
+            </tbody>
+          </table>
+        </section>
+
+        <section>
+          <h2 id="query-functions">查询函数详解</h2>
+
+          <h3 id="pos">pos()</h3>
+          <div class="signature">pos() -&gt; vec3</div>
+          <p>返回脚本执行时玩家所在的位置，格式为 <code>x y z</code>。</p>
+          <pre><code>let spawn = pos()
+log "保存位置：${spawn}"
+run "tp @p ${spawn}"
+run "setblock ${spawn} minecraft:stone"
+</code></pre>
+          <p>如果希望十个假人都在同一位置，应在循环前只调用一次 <code>pos()</code>。</p>
+
+          <h3 id="block">block(x, y, z)</h3>
+          <div class="signature">block(x, y, z) -&gt; token</div>
+          <p>读取执行者所在世界中的方块 ID。相对坐标 <code>~</code> 以玩家位置为基准。</p>
+          <pre><code>let below = block("~", "~-1", "~")
+log "脚下方块：${below}"
+
+if below == "minecraft:air" {
+    fail "玩家脚下没有方块"
+}
+
+run "setblock ~ ~-1 ~ minecraft:stone"
+</code></pre>
+          <p>不支持局部坐标 <code>^</code>；绝对坐标和 <code>~</code> 相对坐标可以使用。</p>
+
+          <h3 id="players-entities">players() 与 entities()</h3>
+          <div class="signature">players() -&gt; 字符串列表<br>entities(type, radius) -&gt; UUID 列表</div>
+          <p>
+            <code>players()</code> 返回按名称排序的在线玩家名。
+            <code>entities()</code> 返回附近实体 UUID，最多 256 条，半径限制在 0 到 64。
+          </p>
+          <pre><code>log "在线玩家：${players()}"
+log "附近僵尸：${entities("minecraft:zombie", 16)}"
+log "附近全部实体：${entities("*", 8)}"
+</code></pre>
+          <p>
+            类型可以写完整 ID，例如 <code>minecraft:zombie</code>，也可以写短名
+            <code>zombie</code>。使用 <code>*</code> 或 <code>any</code> 表示不过滤类型。
+          </p>
+          <div class="warning">
+            <span class="callout-title">首版限制</span>
+            这两个函数返回列表，目前适合写入日志。首版不支持列表索引、循环遍历或直接拼成一条命令参数。
+          </div>
+
+          <h3 id="score">score(objective, target)</h3>
+          <div class="signature">score(objective, target) -&gt; int</div>
+          <p>读取计分板目标中某个目标的分数。目标或分数不存在时返回 <code>0</code>。</p>
+          <pre><code>arg player: string = "Alex"
+let points = score("points", player)
+
+if points &gt;= 100 {
+    run "say ${quote(player)} 已达到 100 分"
+} else {
+    log "当前分数：${points}"
+}
+</code></pre>
+
+          <h3 id="encoding">token()、quote() 与 json()</h3>
+          <p>这三个函数负责把文本安全地放入命令。</p>
+          <div class="signature">token(value) -&gt; token<br>quote(value) -&gt; 带双引号的命令参数<br>json(value) -&gt; JSON 字符串</div>
+          <pre><code>arg id: token = "minecraft:stone"
+arg name: string = "Alex"
+
+# 材质和命名空间 ID
+run "setblock ~ ~ ~ ${token(id)}"
+
+# 普通命令文本参数
+run "say ${quote(name)}"
+
+# tellraw 的 JSON 文本
+run "tellraw @a {\"text\":${json(name)}}"
+</code></pre>
+          <table>
+            <thead>
+              <tr>
+                <th>函数</th>
+                <th>适合场景</th>
+                <th>注意</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><code>token()</code></td>
+                <td>方块 ID、物品 ID、标签名、安全的单参数标识符。</td>
+                <td>包含空格、引号或特殊符号时会被拒绝。</td>
+              </tr>
+              <tr>
+                <td><code>quote()</code></td>
+                <td><code>say</code>、<code>tell</code>、标题文本等普通命令参数。</td>
+                <td>生成双引号包裹的文本，并转义反斜杠、双引号和换行。</td>
+              </tr>
+              <tr>
+                <td><code>json()</code></td>
+                <td><code>tellraw</code>、JSON 文本组件。</td>
+                <td>只生成 JSON 字符串值，完整 JSON 结构仍需要自己写正确。</td>
+              </tr>
+            </tbody>
+          </table>
+
+          <h3 id="math">min()、max()、abs() 与 round()</h3>
+          <div class="signature">min(a, b) -&gt; double<br>max(a, b) -&gt; double<br>abs(value) -&gt; int / double<br>round(value) -&gt; int</div>
+          <pre><code>let safeRadius = min(radius, 16)
+let largest = max(width, height)
+let distance = abs(-12)
+let blocks = round(4.6)
+
+run "fill ~-${safeRadius} ~ ~-${safeRadius} ~${safeRadius} ~ ~${safeRadius} minecraft:stone"
+log "最大边=${largest}, 距离=${distance}, 方块数=${blocks}"
+</code></pre>
+        </section>
+
+        <section>
+          <h2 id="recipes">完整示例</h2>
+
+          <h3 id="fake-players">示例一：在同一位置生成 10 个 Carpet 假人</h3>
+          <p>需要安装 Carpet，并拥有执行 <code>/player</code> 命令的权限。</p>
+          <pre><code>meta name "spawn_10_fake_players"
+meta on_error "continue"
+meta on_denied "stop"
+meta max_commands "10"
+meta max_ticks "200"
+
+arg prefix: token = "sace_bot"
+
+log "开始在同一位置生成 10 个假人"
+let spawn = pos()
+
+for i in range(0, 10) {
+    run "player ${prefix}_${i} spawn at ${spawn}"
+    wait 1t
+}
+
+log "生成完成。清理假人可使用 /player 名称 kill"
+</code></pre>
+          <p>
+            关键是 <code>let spawn = pos()</code> 写在循环外。这样十次命令都使用同一个坐标。
+            如果已经存在同名前缀的假人，请通过参数更换前缀：
+          </p>
+          <pre><code>##run spawn_10_fake_players prefix=test_bot</code></pre>
+
+          <h3 id="build-wall">示例二：生成一堵石墙</h3>
+          <pre><code>meta name "build_wall"
+meta on_error "stop"
+meta on_denied "stop"
+meta max_commands "2048"
+
+arg width: int = 8 min 1 max 64
+arg height: int = 4 min 1 max 32
+arg material: token = "minecraft:stone"
+arg gap: int = 0 min 0 max 4
+
+log "开始生成 ${width}x${height} 的墙"
+
+for x in range(0, width) {
+    for y in range(0, height) {
+        run "setblock ~${x + gap} ~${y} ~ ${material}"
+    }
+    wait 1t
+}
+
+log "墙生成完成"
+</code></pre>
+          <p>参数可以在聊天指令中覆盖：</p>
+          <pre><code>##run build_wall width=12 height=5 material=minecraft:deepslate_bricks</code></pre>
+
+          <h3 id="safe-message">示例三：安全发送玩家文本</h3>
+          <pre><code>meta name "safe_message"
+arg message: string = "hello world"
+arg target: selector = "@a"
+
+run "say ${quote(message)}"
+run "tellraw ${target} {\"text\":${json(message)}}"
+log "消息已发送"
+</code></pre>
+          <div class="warning">
+            <span class="callout-title">不要直接拼接字符串</span>
+            <code>run "say ${message}"</code> 会被拒绝。使用 <code>quote(message)</code> 或
+            <code>json(message)</code>，防止文本被解释成额外命令参数。
+          </div>
+        </section>
+
+        <section>
+          <h2 id="permissions">权限模型</h2>
+          <ul>
+            <li>所有命令使用发起玩家当前的原版权限执行。</li>
+            <li>脚本不会把普通玩家提升为 OP，也不会改用控制台身份。</li>
+            <li>玩家失去权限时，命令会按服务器结果被拒绝。</li>
+            <li>客户端直连模式无法可靠获取结构化的权限拒绝结果，服务端安装模组时更准确。</li>
+            <li>断开连接、退出游戏、任务被停止或服务器急停时，正在运行的任务会结束。</li>
+          </ul>
+        </section>
+
+        <section>
+          <h2 id="policy">命令策略</h2>
+          <p>服务器默认阻止高风险命令根。默认列表包括：</p>
+          <pre><code>stop, op, deop, ban, ban-ip, pardon, pardon-ip, whitelist,
+kick, reload, datapack, function, schedule, jfr, perf, debug,
+save-off, save-on, save-all, tick, transfer
+</code></pre>
+          <p>
+            策略会检查命令根，并递归检查 <code>execute ... run 命令</code>。危险命令、
+            策略违规和调度器急停属于硬阻止，即使设置 <code>on_denied "skip"</code> 也不会继续。
+          </p>
+          <div class="note">
+            <span class="callout-title">服主配置</span>
+            管理员可以通过服务端设置或 <code>/scriptautoce config</code> 调整阻止列表、
+            允许列表和各类执行上限。普通脚本不能自行解除这些限制。
+          </div>
+        </section>
+
+        <section>
+          <h2 id="limits">执行限制</h2>
+          <table>
+            <thead>
+              <tr>
+                <th>项目</th>
+                <th>默认或硬限制</th>
+                <th>说明</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>源码大小</td>
+                <td>64 KiB</td>
+                <td>上传和编译的最大源码大小。</td>
+              </tr>
+              <tr>
+                <td>编译指令数</td>
+                <td>2,000</td>
+                <td>编译器生成的内部指令数量，超过后拒绝运行。</td>
+              </tr>
+              <tr>
+                <td>解释器操作数</td>
+                <td>1,000,000</td>
+                <td>单次运行的解释器操作硬限制。</td>
+              </tr>
+              <tr>
+                <td>单次命令数</td>
+                <td>默认 10,000</td>
+                <td>服务器可调低或调整，脚本元数据只能设置更低值。</td>
+              </tr>
+              <tr>
+                <td>每刻命令数</td>
+                <td>默认 4</td>
+                <td>调度器逐游戏刻执行，避免一次卡死服务器。</td>
+              </tr>
+              <tr>
+                <td>单次运行时长</td>
+                <td>默认 6,000 刻</td>
+                <td>约 5 分钟，包含等待时间。</td>
+              </tr>
+              <tr>
+                <td>并发任务</td>
+                <td>每玩家 1，全局 8</td>
+                <td>管理员可调整。</td>
+              </tr>
+              <tr>
+                <td>单次 wait</td>
+                <td>72,000 刻</td>
+                <td>约 1 小时。</td>
+              </tr>
+            </tbody>
+          </table>
+          <p>
+            如果脚本频繁触发“阈值”“命令数”“运行时长”或“急停”错误，应缩小循环范围、
+            分拆为多个脚本、增加执行后的等待，或请管理员检查服务器限制。
+          </p>
+        </section>
+
+        <section>
+          <h2 id="errors">常见错误与定位</h2>
+          <table>
+            <thead>
+              <tr>
+                <th>提示或现象</th>
+                <th>常见原因</th>
+                <th>解决方式</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Unknown variable</td>
+                <td>变量未用 <code>let</code> 创建，或名称拼写错误。</td>
+                <td>检查大小写，先声明再使用。</td>
+              </tr>
+              <tr>
+                <td>Expected a whole number</td>
+                <td>把小数传给了只接受整数的位置。</td>
+                <td>使用 <code>round()</code>，或把参数类型改为 <code>double</code>。</td>
+              </tr>
+              <tr>
+                <td>This value cannot be inserted</td>
+                <td>普通字符串直接进入 <code>run</code> 命令。</td>
+                <td>改用 <code>quote(value)</code> 或 <code>json(value)</code>。</td>
+              </tr>
+              <tr>
+                <td>Unknown function</td>
+                <td>函数名拼错，或使用了不存在的自定义函数。</td>
+                <td>只使用本文列出的内置函数，并检查大小写。</td>
+              </tr>
+              <tr>
+                <td>Loop step cannot be zero</td>
+                <td><code>range()</code> 的步长为 0。</td>
+                <td>正序使用正数，倒序使用负数。</td>
+              </tr>
+              <tr>
+                <td>Command root is blocked</td>
+                <td>命令被服务器安全策略阻止。</td>
+                <td>更换普通命令，或由管理员审查策略配置。</td>
+              </tr>
+              <tr>
+                <td>Runtime tick limit exceeded</td>
+                <td>等待时间或循环执行时间过长。</td>
+                <td>减少 <code>wait</code> 总量，缩小任务或拆分脚本。</td>
+              </tr>
+              <tr>
+                <td>Command limit exceeded</td>
+                <td>实际执行命令数达到上限。</td>
+                <td>减少循环次数，或分拆成多个脚本运行。</td>
+              </tr>
+            </tbody>
+          </table>
+        </section>
+
+        <section>
+          <h2 id="reference">速查表</h2>
+          <div class="quick-grid">
+            <div>
+              <h3>声明</h3>
+              <pre><code>meta name "demo"
+meta on_error "stop"
+meta on_denied "skip"
+arg count: int = 4 min 1 max 32
+arg material: token = "minecraft:stone"
+let total = count * 2
+set total = total + 1
+</code></pre>
+            </div>
+            <div>
+              <h3>流程</h3>
+              <pre><code>if total &gt; 4 {
+    log "large"
+} else {
+    log "small"
+}
+
+for i in range(0, count) {
+    wait 1t
+}
+
+fail "停止并报错"
+return
+</code></pre>
+            </div>
+            <div>
+              <h3>命令与日志</h3>
+              <pre><code>log "位置：${pos()}"
+run "say ${quote(message)}"
+run "setblock ~ ~ ~ ${material}"
+run "tellraw @a {\"text\":${json(message)}}"
+</code></pre>
+            </div>
+            <div>
+              <h3>常用函数</h3>
+              <pre><code>pos()
+block("~", "~-1", "~")
+players()
+entities("minecraft:zombie", 16)
+score("points", "Alex")
+token(value)
+quote(value)
+json(value)
+min(a, b)
+max(a, b)
+abs(value)
+round(value)
+</code></pre>
+            </div>
+          </div>
+        </section>
+
+        <footer class="footer">
+          Script Auto CE · SACE DSL 中文教程 · 适用于 0.1.0-alpha。
+          教程会随模组首次运行复制到游戏目录，已有同名教程不会被覆盖。
+        </footer>
+      </article>
+    </main>
+  </div>
+
+  <button class="back-top" type="button" id="backTop" aria-label="返回顶部">顶部</button>
+
+  <script>
+    (() => {
+      const keywords = new Set([
+        "meta", "arg", "let", "set", "if", "else", "for", "in", "wait",
+        "run", "log", "fail", "return", "true", "false"
+      ]);
+      const functions = new Set([
+        "pos", "block", "players", "entities", "score", "token", "quote",
+        "json", "min", "max", "abs", "round", "range"
+      ]);
+      const tokenPattern = /#[^\n]*|"(?:\\.|[^"\\])*"|(?:===?|!==?|<=|>=|&&|\|\||[-+*/%])|\b[A-Za-z_][A-Za-z0-9_]*\b|\b\d+(?:\.\d+)?\b/g;
+
+      function escapeHtml(value) {
+        return value
+          .replaceAll("&", "&amp;")
+          .replaceAll("<", "&lt;")
+          .replaceAll(">", "&gt;");
+      }
+
+      function highlight(source) {
+        let result = "";
+        let cursor = 0;
+        for (const match of source.matchAll(tokenPattern)) {
+          result += escapeHtml(source.slice(cursor, match.index));
+          const token = match[0];
+          let className = "";
+          if (token.startsWith("#")) {
+            className = "tok-comment";
+          } else if (token.startsWith("\"")) {
+            className = "tok-string";
+          } else if (/^\d/.test(token)) {
+            className = "tok-number";
+          } else if (/^[A-Za-z_]/.test(token)) {
+            if (keywords.has(token)) {
+              className = "tok-keyword";
+            } else if (functions.has(token)) {
+              className = "tok-function";
+            }
+          } else {
+            className = "tok-operator";
+          }
+          result += className
+            ? `<span class="${className}">${escapeHtml(token)}</span>`
+            : escapeHtml(token);
+          cursor = match.index + token.length;
+        }
+        result += escapeHtml(source.slice(cursor));
+        return result;
+      }
+
+      document.querySelectorAll("pre code").forEach((block) => {
+        const source = block.textContent;
+        block.innerHTML = highlight(source);
+
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = "copy-button";
+        button.textContent = "复制";
+        button.addEventListener("click", async () => {
+          try {
+            await navigator.clipboard.writeText(source);
+          } catch {
+            const area = document.createElement("textarea");
+            area.value = source;
+            area.style.position = "fixed";
+            area.style.opacity = "0";
+            document.body.appendChild(area);
+            area.select();
+            document.execCommand("copy");
+            area.remove();
+          }
+          button.textContent = "已复制";
+          setTimeout(() => {
+            button.textContent = "复制";
+          }, 1300);
+        });
+        block.parentElement.appendChild(button);
+      });
+
+      const links = [...document.querySelectorAll(".sidebar a[href^='#']")];
+      const sections = links
+        .map((link) => document.querySelector(link.getAttribute("href")))
+        .filter(Boolean);
+
+      if ("IntersectionObserver" in window) {
+        const observer = new IntersectionObserver((entries) => {
+          const visible = entries
+            .filter((entry) => entry.isIntersecting)
+            .sort((left, right) => left.boundingClientRect.top - right.boundingClientRect.top);
+          if (!visible.length) {
+            return;
+          }
+          const id = visible[0].target.id;
+          links.forEach((link) => {
+            link.classList.toggle("active", link.getAttribute("href") === `#${id}`);
+          });
+        }, { rootMargin: "-90px 0px -72% 0px", threshold: 0.01 });
+        sections.forEach((section) => observer.observe(section));
+      }
+
+      const backTop = document.getElementById("backTop");
+      window.addEventListener("scroll", () => {
+        backTop.classList.toggle("visible", window.scrollY > 600);
+      }, { passive: true });
+      backTop.addEventListener("click", () => {
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      });
+    })();
+  </script>
+</body>
+</html>

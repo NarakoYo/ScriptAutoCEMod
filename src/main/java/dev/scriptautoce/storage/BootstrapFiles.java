@@ -42,6 +42,10 @@ public final class BootstrapFiles {
                     ConfigPaths.gameRoot().resolve("Examples/生成10个假人.sace"));
             copyResourceIfMissing("docs/language.md", ConfigPaths.gameRoot().resolve("LANGUAGE.md"));
             copyResourceIfMissing("docs/language.md", ConfigPaths.gameRoot().resolve("语言文档.md"));
+            copyResourceIfMissing("docs/SACE_SCRIPT_TUTORIAL.html",
+                    ConfigPaths.gameRoot().resolve("SACE脚本教程.html"));
+            copyResourceIfMissing("docs/SACE_SCRIPT_TUTORIAL.md",
+                    ConfigPaths.gameRoot().resolve("SACE脚本教程.md"));
             copyResourceIfMissing("docs/language.md", ConfigPaths.gameRoot().resolve("README.md"));
         } catch (IOException exception) {
             ScriptAutoCe.LOGGER.error("Could not create Script Auto CE directories", exception);

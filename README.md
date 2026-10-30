@@ -64,13 +64,18 @@ ScriptAutoCE/
   Logs/          server audit logs
   LANGUAGE.md
   语言文档.md
+  SACE脚本教程.html
+  SACE脚本教程.md
 ```
 
 Only settings remain under `config/scriptautoce`. Existing scripts from older versions are copied into
 the new layout without deleting the originals. Existing files are never overwritten.
 
-See [the bundled DSL guide](src/main/resources/assets/scriptautoce/docs/language.md) for syntax and safety
-rules.
+See the SACE script tutorial in [HTML](docs/SACE_SCRIPT_TUTORIAL.html) or
+[Markdown](docs/SACE_SCRIPT_TUTORIAL.md). Both cover statements, argument types, built-in functions,
+safe interpolation, command policy, limits and practical examples. Copies are created as
+`ScriptAutoCE/SACE脚本教程.html` and `ScriptAutoCE/SACE脚本教程.md` on first run. The shorter
+[bundled DSL reference](src/main/resources/assets/scriptautoce/docs/language.md) is also available.
 
 ### Fake-player example
 

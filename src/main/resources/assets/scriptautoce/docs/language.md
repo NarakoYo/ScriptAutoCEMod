@@ -1,5 +1,8 @@
 # SACE DSL
 
+For the complete Chinese tutorial with examples and function reference, open `SACE脚本教程.html`
+or `SACE脚本教程.md` from the game directory or the repository's `docs` folder.
+
 SACE DSL is a restricted command language. It never evaluates Java, JavaScript, files or network calls.
 
 ## Metadata

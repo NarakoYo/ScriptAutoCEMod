@@ -1,7 +1,7 @@
 $root = Split-Path -Parent $PSScriptRoot
 $textExtensions = @(
     ".gradle", ".properties", ".json", ".java", ".md", ".ps1", ".sace",
-    ".txt", ".yml", ".yaml", ".xml", ".bat", ".cmd", ".sh"
+    ".txt", ".yml", ".yaml", ".xml", ".html", ".bat", ".cmd", ".sh"
 )
 $excludedDirectories = @(".gradle", ".idea", ".git", "build", "run", "26.2-0.19.3")
 $rootPrefix = $root.TrimEnd('\', '/') + [IO.Path]::DirectorySeparatorChar

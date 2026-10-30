@@ -14,6 +14,7 @@ import dev.scriptautoce.script.ScriptException;
 import dev.scriptautoce.storage.AuditLog;
 import dev.scriptautoce.storage.JsonFiles;
 import java.lang.reflect.Type;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -106,7 +107,8 @@ final class ServerJobManager {
         } else if (server.getCurrentSmoothedTickTime() > settings.emergencyTickMillis()) {
             emergencyTicks++;
             if (emergencyTicks >= 3) {
-                stopAll("Emergency stop: server tick time exceeded " + settings.emergencyTickMillis() + " ms");
+                stopAll("Server tick time exceeded " + settings.emergencyTickMillis()
+                        + " ms for 3 consecutive ticks");
                 emergencyTicks = 0;
             }
         } else {
@@ -307,7 +309,8 @@ final class ServerJobManager {
     private JobEventPayload payload(ServerJob job, String type, String message) {
         return new JobEventPayload(job.id, type, message, job.progress,
                 trim(job.currentCommand, 1_024), JsonFiles.GSON.toJson(job.logs()),
-                job.reason.name(), job.detail, job.currentLine);
+                job.reason.name(), job.detail, job.currentLine, job.startedAtMillis,
+                job.endedAtMillis, ZoneId.systemDefault().getId(), !server.isSingleplayer());
     }
 
     private long activeCount() {

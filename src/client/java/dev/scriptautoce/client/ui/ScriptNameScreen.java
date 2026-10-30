@@ -3,7 +3,6 @@ package dev.scriptautoce.client.ui;
 import java.util.function.Consumer;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
-import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.components.StringWidget;
 import net.minecraft.client.gui.screens.Screen;
@@ -39,10 +38,13 @@ final class ScriptNameScreen extends Screen {
         nameBox.setMaxLength(128);
         addRenderableWidget(nameBox);
         setInitialFocus(nameBox);
-        addRenderableWidget(Button.builder(Component.translatable("gui.create"), button -> accept())
-                .bounds(width / 2 - 90, 80, 84, 20).build());
-        addRenderableWidget(Button.builder(Component.translatable("gui.cancel"), button -> onClose())
-                .bounds(width / 2 + 6, 80, 84, 20).build());
+        addRenderableWidget(new VSCodePrimaryButton(width / 2 - 100, 80, 94, 20,
+                Component.translatable(folder
+                        ? "screen.scriptautoce.createFolder"
+                        : "screen.scriptautoce.createFile"),
+                button -> accept()));
+        addRenderableWidget(new VSCodeButton(width / 2 + 6, 80, 94, 20,
+                Component.translatable("gui.cancel"), button -> onClose()));
         if (!error.isBlank()) {
             addRenderableWidget(new StringWidget(width / 2 - 140, 106, 280, 10,
                     Component.literal(error).withStyle(ChatFormatting.RED), font));

@@ -15,6 +15,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.time.ZoneId;
 import net.minecraft.client.Minecraft;
 
 public final class DirectScriptJobManager {
@@ -96,6 +97,7 @@ public final class DirectScriptJobManager {
                         job.active = false;
                         job.progress = 100;
                         job.command = "";
+        job.endedAtMillis = System.currentTimeMillis();
                         job.reason = JobReason.COMPLETED;
                         job.detail = finished.message();
                         job.addLogs(List.of(finished.message()));
@@ -121,6 +123,7 @@ public final class DirectScriptJobManager {
             return false;
         }
         job.active = false;
+        job.endedAtMillis = System.currentTimeMillis();
         job.reason = JobReason.USER_CANCELLED;
         job.detail = "Cancelled";
         publish(job, "cancelled", "Cancelled");
@@ -130,6 +133,7 @@ public final class DirectScriptJobManager {
     public void cancelAll() {
         jobs.values().stream().filter(Job::active).forEach(job -> {
             job.active = false;
+            job.endedAtMillis = System.currentTimeMillis();
             job.reason = JobReason.EXTERNAL_DISCONNECT;
             job.detail = "Client disconnected";
             publish(job, "cancelled", "Client disconnected");
@@ -141,6 +145,7 @@ public final class DirectScriptJobManager {
             return;
         }
         job.active = false;
+        job.endedAtMillis = System.currentTimeMillis();
         job.reason = reason;
         job.detail = message;
         job.addLogs(List.of("ERROR: " + message));
@@ -150,7 +155,8 @@ public final class DirectScriptJobManager {
     private void publish(Job job, String type, String message) {
         ClientUiState.updateJob(new JobEventPayload(job.id, type, message, job.progress,
                 job.command, JsonFiles.GSON.toJson(job.logs()), job.reason.name(), job.detail,
-                job.line));
+                job.line, job.startedAtMillis, job.endedAtMillis,
+                ZoneId.systemDefault().getId(), false));
     }
 
     private long activeCount() {
@@ -162,6 +168,7 @@ public final class DirectScriptJobManager {
         private final CompiledScript script;
         private final Interpreter interpreter;
         private final long startedTick;
+        private final long startedAtMillis;
         private final List<String> logs = new ArrayList<>();
         private boolean active = true;
         private int waitTicks;
@@ -171,12 +178,14 @@ public final class DirectScriptJobManager {
         private int line = 1;
         private JobReason reason = JobReason.RUNNING;
         private String detail = "";
+        private long endedAtMillis;
 
         private Job(String id, CompiledScript script, Interpreter interpreter, long startedTick) {
             this.id = id;
             this.script = script;
             this.interpreter = interpreter;
             this.startedTick = startedTick;
+            this.startedAtMillis = System.currentTimeMillis();
         }
 
         private boolean active() {

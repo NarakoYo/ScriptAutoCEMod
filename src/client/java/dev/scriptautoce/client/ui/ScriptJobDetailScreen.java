@@ -30,48 +30,76 @@ final class ScriptJobDetailScreen extends Screen {
     @Override
     protected void init() {
         clearWidgets();
+        JobEventPayload latest = ClientUiState.job(job.jobId());
+        JobEventPayload current = latest == null ? job : latest;
         ChatFormatting color = JobReasonDisplay.color(job.reasonCode());
         addRenderableWidget(new StringWidget(16, 14, width - 32, 10,
                 Component.translatable("screen.scriptautoce.job_detail"), font));
         addRenderableWidget(new StringWidget(16, 38, width - 32, 10,
-                JobReasonDisplay.label(job.reasonCode()).copy().withStyle(color), font));
+                JobReasonDisplay.label(current.reasonCode()).copy().withStyle(color), font));
         addRenderableWidget(new StringWidget(16, 54, width - 32, 10,
-                JobReasonDisplay.description(job.reasonCode()).copy().withStyle(ChatFormatting.GRAY), font));
-        addRenderableWidget(new StringWidget(16, 72, width - 32, 10,
+                JobReasonDisplay.description(current.reasonCode()).copy().withStyle(ChatFormatting.GRAY),
+                font));
+        addRenderableWidget(new StringWidget(16, 78, width / 2 - 24, 10,
+                Component.translatable("screen.scriptautoce.job_started_at",
+                        JobTimeDisplay.start(current)).withStyle(ChatFormatting.GRAY), font));
+        addRenderableWidget(new StringWidget(width / 2 + 8, 78, width / 2 - 24, 10,
+                Component.translatable("screen.scriptautoce.job_duration",
+                        JobTimeDisplay.duration(current)).withStyle(ChatFormatting.GRAY), font));
+        addRenderableWidget(new StringWidget(16, 92, width / 2 - 24, 10,
+                Component.translatable("screen.scriptautoce.job_ended_at",
+                        JobTimeDisplay.end(current)).withStyle(ChatFormatting.GRAY), font));
+        addRenderableWidget(new StringWidget(width / 2 + 8, 92, width / 2 - 24, 10,
+                Component.translatable("screen.scriptautoce.job_clock_source",
+                        JobTimeDisplay.clockSource(current)).withStyle(ChatFormatting.DARK_AQUA), font));
+        addRenderableWidget(new StringWidget(16, 110, width - 32, 10,
                 Component.translatable("screen.scriptautoce.job_progress",
-                        job.progress()).withStyle(ChatFormatting.GRAY), font));
-        if (!job.currentCommand().isBlank()) {
-            addRenderableWidget(new StringWidget(16, 88, width - 32, 10,
-                    Component.translatable("screen.scriptautoce.job_command", job.currentCommand())
+                        current.progress()).withStyle(ChatFormatting.GRAY), font));
+        if (!current.currentCommand().isBlank()) {
+            addRenderableWidget(new StringWidget(16, 124, width - 32, 10,
+                    Component.translatable("screen.scriptautoce.job_command", current.currentCommand())
                             .withStyle(ChatFormatting.AQUA), font));
         }
-        if (job.line() > 0) {
-            addRenderableWidget(new StringWidget(16, 104, width - 32, 10,
-                    Component.translatable("screen.scriptautoce.job_line", job.line())
+        if (current.line() > 0) {
+            addRenderableWidget(new StringWidget(16, 138, width - 32, 10,
+                    Component.translatable("screen.scriptautoce.job_line", current.line())
                             .withStyle(ChatFormatting.GRAY), font));
         }
-        if (!job.detail().isBlank()) {
-            addRenderableWidget(new StringWidget(16, 116, width - 32, 10,
-                    Component.translatable("screen.scriptautoce.job_technical_detail", job.detail())
+        if (!current.detail().isBlank()) {
+            addRenderableWidget(new StringWidget(16, 152, width - 32, 10,
+                    Component.translatable("screen.scriptautoce.job_technical_detail", current.detail())
                             .withStyle(ChatFormatting.DARK_GRAY), font));
         }
+        if ("EXTERNAL_EMERGENCY".equals(current.reasonCode())) {
+            addRenderableWidget(new StringWidget(16, 166, width - 32, 10,
+                    Component.translatable("screen.scriptautoce.job_emergency_hint")
+                            .withStyle(ChatFormatting.YELLOW), font));
+        }
 
-        int y = 134;
-        int start = Math.max(0, logs.size() - 8);
+        int y = 182;
+        int maxLogs = Math.max(1, (height - 30 - y) / 12);
+        int start = Math.max(0, logs.size() - maxLogs);
         for (int index = start; index < logs.size(); index++) {
             addRenderableWidget(new StringWidget(16, y, width - 32, 10,
                     Component.literal(logs.get(index)).withStyle(ChatFormatting.GRAY), font));
             y += 12;
         }
         if (logs.isEmpty()) {
-            addRenderableWidget(new StringWidget(16, 126, width - 32, 10,
+            addRenderableWidget(new StringWidget(16, 182, width - 32, 10,
                     Component.translatable("screen.scriptautoce.no_logs").withStyle(ChatFormatting.DARK_GRAY),
                     font));
         }
-        if (JobReasonDisplay.active(job.reasonCode())) {
+        if (JobReasonDisplay.active(current.reasonCode())) {
             addRenderableWidget(Button.builder(Component.translatable("screen.scriptautoce.stop"),
-                    button -> ClientNetworkController.stopJob(job.jobId()))
+                    button -> ClientNetworkController.stopJob(current.jobId()))
                     .bounds(16, height - 28, 70, 18).build());
+        } else {
+            addRenderableWidget(Button.builder(
+                    Component.translatable("screen.scriptautoce.deleteRecord"),
+                    button -> {
+                        ClientUiState.removeJob(current.jobId());
+                        onClose();
+                    }).bounds(16, height - 28, 86, 18).build());
         }
         addRenderableWidget(Button.builder(Component.translatable("gui.back"), button -> onClose())
                 .bounds(width - 76, height - 28, 60, 18).build());

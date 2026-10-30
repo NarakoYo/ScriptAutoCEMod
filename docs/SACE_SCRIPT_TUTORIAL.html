@@ -612,6 +612,7 @@
           <a href="#score">score()</a>
           <a href="#encoding">token / quote / json</a>
           <a href="#math">min / max / abs / round</a>
+          <a href="#text-helpers">文本与列表辅助</a>
         </section>
         <section class="nav-group">
           <div class="nav-group-title">实战</div>
@@ -712,7 +713,12 @@ run "say Script Auto CE is ready"
   Shared/        服务端共享脚本
   Examples/      内置示例
   SACE脚本教程.html
+  SACE脚本教程.md
 </code></pre>
+          <p>
+            脚本库顶部使用“本地 / 共享 / 运行中 / 历史”页签切换。结束、停止或中断的任务会自动进入历史，
+            并显示开始时间、运行时间、结束时间和本地或服务器时间来源。
+          </p>
           <p>
             文件名、文件夹名和参数值均支持 UTF-8。文件夹可以多层嵌套，脚本扩展名必须是
             <code>.sace</code>。
@@ -733,7 +739,7 @@ meta on_error "stop"
 arg width: int = 4 min 1 max 32
 
 # 3. 执行语句
-let material = "minecraft:stone"
+let material = token("minecraft:stone")
 for x in range(0, width) {
     run "setblock ~${x} ~ ~ ${material}"
     wait 1t
@@ -1209,6 +1215,78 @@ run "say 这行不会执行"
                 <td>四舍五入到整数。</td>
                 <td>是</td>
               </tr>
+              <tr>
+                <td><code>floor(value)</code></td>
+                <td><code>int</code></td>
+                <td>向下取整。</td>
+                <td>是</td>
+              </tr>
+              <tr>
+                <td><code>ceil(value)</code></td>
+                <td><code>int</code></td>
+                <td>向上取整。</td>
+                <td>是</td>
+              </tr>
+              <tr>
+                <td><code>clamp(value, min, max)</code></td>
+                <td>数字</td>
+                <td>把数字限制在指定范围内。</td>
+                <td>是</td>
+              </tr>
+              <tr>
+                <td><code>length(value)</code></td>
+                <td><code>int</code></td>
+                <td>获取文本长度或列表元素数量。</td>
+                <td>是</td>
+              </tr>
+              <tr>
+                <td><code>contains(value, search)</code></td>
+                <td><code>bool</code></td>
+                <td>判断文本或列表是否包含指定值。</td>
+                <td>是</td>
+              </tr>
+              <tr>
+                <td><code>startsWith(value, prefix)</code></td>
+                <td><code>bool</code></td>
+                <td>判断文本前缀。</td>
+                <td>是</td>
+              </tr>
+              <tr>
+                <td><code>endsWith(value, suffix)</code></td>
+                <td><code>bool</code></td>
+                <td>判断文本后缀。</td>
+                <td>是</td>
+              </tr>
+              <tr>
+                <td><code>lower(text)</code></td>
+                <td><code>string</code></td>
+                <td>转换为小写。</td>
+                <td>否，需 <code>quote()</code></td>
+              </tr>
+              <tr>
+                <td><code>upper(text)</code></td>
+                <td><code>string</code></td>
+                <td>转换为大写。</td>
+                <td>否，需 <code>quote()</code></td>
+              </tr>
+              <tr>
+                <td><code>trim(text)</code></td>
+                <td><code>string</code></td>
+                <td>去除首尾空白。</td>
+                <td>否，需 <code>quote()</code></td>
+              </tr>
+              <tr>
+                <td><code>replace(text, search, replacement)</code></td>
+                <td><code>string</code></td>
+                <td>替换文本内容。</td>
+                <td>否，需 <code>quote()</code></td>
+              </tr>
+              <tr>
+                <td><code>join(list, separator)</code></td>
+                <td><code>string</code></td>
+                <td>用分隔符连接列表。</td>
+                <td>否，需 <code>quote()</code></td>
+              </tr>
             </tbody>
           </table>
         </section>
@@ -1324,6 +1402,27 @@ let blocks = round(4.6)
 run "fill ~-${safeRadius} ~ ~-${safeRadius} ~${safeRadius} ~ ~${safeRadius} minecraft:stone"
 log "最大边=${largest}, 距离=${distance}, 方块数=${blocks}"
 </code></pre>
+
+          <h3 id="text-helpers">字符串、判断与列表辅助函数</h3>
+          <pre><code>log "${length("hello")}"
+log "${contains("hello", "ell")}"
+log "${startsWith("script.sace", "script")}"
+log "${endsWith("script.sace", ".sace")}"
+log "${lower("AbC")}"
+log "${upper("abc")}"
+log "${trim("  hello  ")}"
+log "${replace("a-b", "-", "_")}"
+log "${join(players(), ",")}"
+
+let safeWidth = clamp(width, 1, 32)
+let radius = floor(4.9)
+</code></pre>
+          <p>
+            <code>length()</code> 同时支持文本和列表；<code>join()</code> 可以把
+            <code>players()</code> 或 <code>entities()</code> 的结果转成文本。
+            返回字符串的结果放入 <code>run</code> 命令时，仍需使用
+            <code>quote()</code> 或 <code>json()</code>。
+          </p>
         </section>
 
         <section>
@@ -1476,6 +1575,11 @@ save-off, save-on, save-all, tick, transfer
                 <td>72,000 刻</td>
                 <td>约 1 小时。</td>
               </tr>
+              <tr>
+                <td>tick 急停阈值</td>
+                <td>默认 1,000 ms</td>
+                <td>连续 3 个 tick 超过阈值时停止任务，防止服务器卡死。</td>
+              </tr>
             </tbody>
           </table>
           <p>
@@ -1591,6 +1695,18 @@ min(a, b)
 max(a, b)
 abs(value)
 round(value)
+floor(value)
+ceil(value)
+clamp(value, min, max)
+length(value)
+contains(value, search)
+startsWith(value, prefix)
+endsWith(value, suffix)
+lower(text)
+upper(text)
+trim(text)
+replace(text, search, replacement)
+join(list, separator)
 </code></pre>
             </div>
           </div>

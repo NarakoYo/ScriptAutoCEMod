@@ -1,6 +1,6 @@
 {
   "key.scriptautoce.library": "打开脚本库",
-  "key.categories.scriptautoce.script_ui": "Script Auto CE",
+  "key.category.scriptautoce.script_ui": "Script Auto CE",
   "screen.scriptautoce.library": "脚本库",
   "screen.scriptautoce.search": "搜索脚本",
   "screen.scriptautoce.search_results": "全局搜索：找到 %s 个结果（%s）",
@@ -24,6 +24,7 @@
   "screen.scriptautoce.filter.local": "本地",
   "screen.scriptautoce.filter.shared": "共享",
   "screen.scriptautoce.filter.running": "运行中",
+  "screen.scriptautoce.filter.history": "历史",
   "screen.scriptautoce.folder": "文件夹",
   "screen.scriptautoce.shared_subtitle": "共享 · %s · 修订 %s",
   "screen.scriptautoce.mode.auto": "自动",
@@ -32,6 +33,12 @@
   "screen.scriptautoce.editor": "脚本编辑器",
   "screen.scriptautoce.editor.placeholder": "在此编写 SACE DSL",
   "screen.scriptautoce.validate": "校验",
+  "screen.scriptautoce.validateCommands": "校验命令",
+  "screen.scriptautoce.invalidCommand": "命令语法无效：%s",
+  "screen.scriptautoce.commandsValid": "校验通过：%s 条静态命令，%s 条动态命令，脚本指令 %s 条",
+  "screen.scriptautoce.commandsValidOffline": "语法通过：当前未连接世界，无法检查命令树（静态 %s，动态 %s）",
+  "screen.scriptautoce.createFile": "创建文件",
+  "screen.scriptautoce.createFolder": "创建文件夹",
   "screen.scriptautoce.saved": "已保存",
   "screen.scriptautoce.valid": "校验通过：%s 条指令",
   "screen.scriptautoce.arguments": "脚本参数",
@@ -41,6 +48,7 @@
   "screen.scriptautoce.settings.server": "服务端",
   "screen.scriptautoce.settings.commands": "每刻命令数",
   "screen.scriptautoce.settings.runtime": "最大刻数",
+  "screen.scriptautoce.settings.emergency": "tick 急停阈值（毫秒）",
   "screen.scriptautoce.settings.saveServer": "保存服务端",
   "screen.scriptautoce.settings.reload": "重新读取",
   "screen.scriptautoce.settings.mode": "模式：%s",
@@ -72,6 +80,9 @@
   "message.scriptautoce.job_failed": "任务失败：%s",
   "message.scriptautoce.job_cancelled": "任务已取消",
   "message.scriptautoce.job_interrupted": "%s：%s",
+  "message.scriptautoce.sharing_started": "正在共享脚本：%s",
+  "message.scriptautoce.stop_requested": "已发送停止请求，正在结束任务",
+  "message.scriptautoce.job_not_active": "任务已经结束，无需停止",
   "message.scriptautoce.server_error": "服务端错误：%s（%s:%s）",
   "message.scriptautoce.not_found": "未找到脚本：%s",
   "message.scriptautoce.sent_server": "脚本已发送到服务端校验，可用 ##status 查看进度",
@@ -109,6 +120,22 @@
   ,"screen.scriptautoce.job_command": "当前命令：%s"
   ,"screen.scriptautoce.job_line": "脚本行号：%s"
   ,"screen.scriptautoce.job_technical_detail": "技术详情：%s"
+  ,"screen.scriptautoce.job_started_at": "开始时间：%s"
+  ,"screen.scriptautoce.job_duration": "运行时间：%s"
+  ,"screen.scriptautoce.job_ended_at": "结束时间：%s"
+  ,"screen.scriptautoce.job_clock_source": "时间来源：%s"
+  ,"screen.scriptautoce.job_emergency_hint": "建议降低每刻命令数、拆分脚本或提高急停阈值"
+  ,"screen.scriptautoce.time.local": "本地时间"
+  ,"screen.scriptautoce.time.server": "服务器时间"
+  ,"screen.scriptautoce.deleteRecord": "删除记录"
+  ,"screen.scriptautoce.shared_header": "共享脚本"
+  ,"screen.scriptautoce.running_header": "运行中的任务"
+  ,"screen.scriptautoce.history_header": "运行历史"
+  ,"screen.scriptautoce.shared_count_label": "共享脚本：%s"
+  ,"screen.scriptautoce.running_count_label": "运行中：%s"
+  ,"screen.scriptautoce.history_count_label": "历史记录：%s"
+  ,"screen.scriptautoce.emptyRunning": "当前没有运行中的任务"
+  ,"screen.scriptautoce.emptyHistory": "当前没有历史记录"
   ,"screen.scriptautoce.no_logs": "没有日志输出"
   ,"job.scriptautoce.reason.running": "运行中"
   ,"job.scriptautoce.reason.running.description": "任务正在执行"
@@ -119,7 +146,7 @@
   ,"job.scriptautoce.reason.external_disconnect": "连接中断"
   ,"job.scriptautoce.reason.external_disconnect.description": "玩家离开服务器或连接发生中断"
   ,"job.scriptautoce.reason.external_emergency": "服务器环境急停"
-  ,"job.scriptautoce.reason.external_emergency.description": "服务器 tick 时间超过安全阈值，任务已自动停止"
+  ,"job.scriptautoce.reason.external_emergency.description": "服务器连续多个 tick 超时，已自动停止以防止卡服"
   ,"job.scriptautoce.reason.limit_exceeded": "执行限制触发"
   ,"job.scriptautoce.reason.limit_exceeded.description": "达到命令数、运行时间、并发或执行步数限制"
   ,"job.scriptautoce.reason.script_error": "脚本错误"

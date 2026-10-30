@@ -15,9 +15,32 @@ public final class ScriptCompiler {
     public static final int MAX_INSTRUCTIONS = 2_000;
     private static final Set<String> ARGUMENT_TYPES =
             Set.of("int", "double", "bool", "string", "token", "vec3", "selector");
-    private static final Set<String> BUILTINS =
-            Set.of("pos", "block", "players", "entities", "score", "token", "quote", "json",
-                    "min", "max", "abs", "round");
+    static final Map<String, Integer> BUILTIN_ARITY = Map.ofEntries(
+            Map.entry("pos", 0),
+            Map.entry("block", 3),
+            Map.entry("players", 0),
+            Map.entry("entities", 2),
+            Map.entry("score", 2),
+            Map.entry("token", 1),
+            Map.entry("quote", 1),
+            Map.entry("json", 1),
+            Map.entry("min", 2),
+            Map.entry("max", 2),
+            Map.entry("abs", 1),
+            Map.entry("round", 1),
+            Map.entry("floor", 1),
+            Map.entry("ceil", 1),
+            Map.entry("clamp", 3),
+            Map.entry("length", 1),
+            Map.entry("contains", 2),
+            Map.entry("startsWith", 2),
+            Map.entry("endsWith", 2),
+            Map.entry("lower", 1),
+            Map.entry("upper", 1),
+            Map.entry("trim", 1),
+            Map.entry("replace", 3),
+            Map.entry("join", 2)
+    );
 
     private ScriptCompiler() {
     }
@@ -25,6 +48,10 @@ public final class ScriptCompiler {
     public static CompilationResult compile(String sourceName, String source) {
         if (source == null) {
             return failure(sourceName, List.of(ScriptDiagnostic.error(1, 1, "Script is empty")));
+        }
+        if (source.isBlank()) {
+            return failure(sourceName, List.of(ScriptDiagnostic.error(1, 1,
+                    "Script has no executable statements")));
         }
         int size = source.getBytes(StandardCharsets.UTF_8).length;
         if (size > MAX_SOURCE_BYTES) {
@@ -35,6 +62,10 @@ public final class ScriptCompiler {
         List<ScriptDiagnostic> diagnostics = new ArrayList<>();
         try {
             ScriptAst ast = Parser.parse(source);
+            if (ast.statements().isEmpty()) {
+                diagnostics.add(ScriptDiagnostic.error(1, 1,
+                        "Script has no executable statements"));
+            }
             Map<String, String> metadata = compileMetadata(ast.metadata(), diagnostics);
             List<CompiledScript.ScriptArgument> arguments = compileArguments(ast.arguments(), diagnostics);
             List<CompiledScript.Instruction> instructions = new InstructionBuilder(diagnostics).compile(ast.statements());
@@ -42,7 +73,7 @@ public final class ScriptCompiler {
                 diagnostics.add(ScriptDiagnostic.error(1, 1,
                         "Script exceeds " + MAX_INSTRUCTIONS + " instructions"));
             }
-            validateExpressions(ast.statements(), diagnostics);
+            SemanticValidator.validate(ast, diagnostics);
             CompiledScript script = new CompiledScript(sourceName, sha256(source), metadata,
                     arguments, instructions);
             return new CompilationResult(script, diagnostics);
@@ -103,62 +134,6 @@ public final class ScriptCompiler {
                     argument.min(), argument.max(), argument.line()));
         }
         return result;
-    }
-
-    private static void validateExpressions(List<Stmt> statements, List<ScriptDiagnostic> diagnostics) {
-        for (Stmt statement : statements) {
-            validateStatement(statement, diagnostics);
-        }
-    }
-
-    private static void validateStatement(Stmt statement, List<ScriptDiagnostic> diagnostics) {
-        if (statement instanceof Stmt.Let let) {
-            validateExpression(let.value(), diagnostics);
-        } else if (statement instanceof Stmt.Set set) {
-            validateExpression(set.value(), diagnostics);
-        } else if (statement instanceof Stmt.If conditional) {
-            validateExpression(conditional.condition(), diagnostics);
-            conditional.thenBranch().forEach(child -> validateStatement(child, diagnostics));
-            conditional.elseBranch().forEach(child -> validateStatement(child, diagnostics));
-        } else if (statement instanceof Stmt.For loop) {
-            validateExpression(loop.start(), diagnostics);
-            validateExpression(loop.end(), diagnostics);
-            if (loop.step() != null) {
-                validateExpression(loop.step(), diagnostics);
-            }
-            loop.body().forEach(child -> validateStatement(child, diagnostics));
-        } else if (statement instanceof Stmt.Run run) {
-            validateTemplate(run.command(), diagnostics);
-        } else if (statement instanceof Stmt.Log log) {
-            validateTemplate(log.message(), diagnostics);
-        } else if (statement instanceof Stmt.Fail fail) {
-            validateTemplate(fail.message(), diagnostics);
-        }
-    }
-
-    private static void validateTemplate(Template template, List<ScriptDiagnostic> diagnostics) {
-        for (Template.Part part : template.parts()) {
-            if (part instanceof Template.ExpressionPart expression) {
-                validateExpression(expression.expression(), diagnostics);
-            }
-        }
-    }
-
-    private static void validateExpression(Expr expression, List<ScriptDiagnostic> diagnostics) {
-        if (expression instanceof Expr.Call call) {
-            if (!BUILTINS.contains(call.name())) {
-                diagnostics.add(ScriptDiagnostic.error(call.line(), call.column(),
-                        "Unknown function '" + call.name() + "'"));
-            }
-            call.arguments().forEach(argument -> validateExpression(argument, diagnostics));
-        } else if (expression instanceof Expr.Binary binary) {
-            validateExpression(binary.left(), diagnostics);
-            validateExpression(binary.right(), diagnostics);
-        } else if (expression instanceof Expr.Unary unary) {
-            validateExpression(unary.operand(), diagnostics);
-        } else if (expression instanceof Expr.TemplateExpr template) {
-            validateTemplate(template.template(), diagnostics);
-        }
     }
 
     public static String sha256(String source) {

@@ -65,6 +65,9 @@ run "tellraw @a {\"text\":${json(playerName)}}"
 - `score(objective, target)` returns a scoreboard value.
 - `token(value)`, `quote(value)`, `json(value)` produce safe command tokens.
 - `min(a,b)`, `max(a,b)`, `abs(value)`, `round(value)`.
+- `floor(value)`, `ceil(value)`, `clamp(value,min,max)` for bounded numeric work.
+- `length(value)`, `contains(value,search)`, `startsWith(value,prefix)`, `endsWith(value,suffix)`.
+- `lower(text)`, `upper(text)`, `trim(text)`, `replace(text,search,replacement)`, `join(list,separator)`.
 
 ## Safety
 

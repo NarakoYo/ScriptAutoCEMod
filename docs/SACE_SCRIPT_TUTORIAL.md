@@ -107,10 +107,12 @@ run "say Script Auto CE is ready"
 
 - 本地脚本。
 - 服务器共享脚本。
-- 正在运行或已中断的任务。
+- 正在运行的任务。
+- 已结束、停止或中断的历史记录，可删除单条记录。
 - 文件夹与脚本混排。
 - 搜索、运行、编辑、上传、下载和删除。
 - 新建文件和文件夹。
+- 顶部页签直接切换本地、共享、运行中和历史。
 
 ### 3.2 脚本目录
 
@@ -172,7 +174,7 @@ meta on_error "stop"
 arg width: int = 4 min 1 max 32
 
 # 3. 执行语句
-let material = "minecraft:stone"
+let material = token("minecraft:stone")
 for x in range(0, width) {
     run "setblock ~${x} ~ ~ ${material}"
     wait 1t
@@ -637,6 +639,18 @@ run "say 这行不会执行"
 | `max(a, b)` | `double` | 取较大值 | 是 |
 | `abs(value)` | `int` / `double` | 取绝对值 | 是 |
 | `round(value)` | `int` | 四舍五入到整数 | 是 |
+| `floor(value)` | `int` | 向下取整 | 是 |
+| `ceil(value)` | `int` | 向上取整 | 是 |
+| `clamp(value, min, max)` | 数字 | 把数字限制在范围内 | 是 |
+| `length(value)` | `int` | 获取文本长度或列表元素数量 | 是 |
+| `contains(value, search)` | `bool` | 判断文本或列表是否包含指定值 | 是 |
+| `startsWith(value, prefix)` | `bool` | 判断文本前缀 | 是 |
+| `endsWith(value, suffix)` | `bool` | 判断文本后缀 | 是 |
+| `lower(text)` | `string` | 转为小写 | 否，需 `quote()` |
+| `upper(text)` | `string` | 转为大写 | 否，需 `quote()` |
+| `trim(text)` | `string` | 去除首尾空白 | 否，需 `quote()` |
+| `replace(text, search, replacement)` | `string` | 替换文本 | 否，需 `quote()` |
+| `join(list, separator)` | `string` | 用分隔符连接列表 | 否，需 `quote()` |
 
 ---
 
@@ -909,6 +923,40 @@ run "fill ~-${safeRadius} ~ ~-${safeRadius} ~${safeRadius} ~ ~${safeRadius} mine
 log "最大边=${largest}, 距离=${distance}, 方块数=${blocks}"
 ```
 
+### 15.6 字符串、判断与列表辅助函数
+
+```text
+log "${length("hello")}"
+log "${contains("hello", "ell")}"
+log "${startsWith("script.sace", "script")}"
+log "${endsWith("script.sace", ".sace")}"
+log "${lower("AbC")}"
+log "${upper("abc")}"
+log "${trim("  hello  ")}"
+log "${replace("a-b", "-", "_")}"
+log "${join(players(), ",")}"
+```
+
+这些函数便于处理参数和日志文本：
+
+- `length()` 可统计文本字符数，也可统计 `players()`、`entities()` 返回列表的元素数量。
+- `contains()` 对文本执行子串判断，对列表判断是否存在完全相等的元素。
+- `join()` 可以把玩家名列表或实体 UUID 列表转成一段文本。
+- `lower()`、`upper()`、`trim()`、`replace()` 返回普通字符串，放入 `run` 命令时必须使用 `quote()` 或 `json()`。
+- `clamp()` 常用于约束半径、次数和坐标偏移。
+- `floor()`、`ceil()` 返回整数，适合循环范围和命令参数。
+
+```text
+arg suffix: string = ".sace"
+
+if endsWith("script.sace", suffix) {
+    log "文件扩展名正确"
+}
+
+let safeWidth = clamp(width, 1, 32)
+let radius = floor(4.9)
+```
+
 ---
 
 ## 16. 完整示例
@@ -1097,6 +1145,7 @@ meta on_denied "skip"
 | 单次运行时长 | 默认 6,000 刻 | 约 5 分钟，包含等待时间 |
 | 并发任务 | 每玩家 1，全局 8 | 管理员可调整 |
 | 单次 wait | 72,000 刻 | 约 1 小时 |
+| tick 急停阈值 | 默认 1,000 ms | 连续 3 个 tick 超过阈值时停止全部任务，防止服务器卡死 |
 
 如果遇到以下错误：
 
@@ -1198,6 +1247,18 @@ min(a, b)
 max(a, b)
 abs(value)
 round(value)
+floor(value)
+ceil(value)
+clamp(value, min, max)
+length(value)
+contains(value, search)
+startsWith(value, prefix)
+endsWith(value, suffix)
+lower(text)
+upper(text)
+trim(text)
+replace(text, search, replacement)
+join(list, separator)
 ```
 
 ### 21.5 常用参数类型

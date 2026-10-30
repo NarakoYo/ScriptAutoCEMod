@@ -1,6 +1,6 @@
 {
   "key.scriptautoce.library": "Open script library",
-  "key.categories.scriptautoce.script_ui": "Script Auto CE",
+  "key.category.scriptautoce.script_ui": "Script Auto CE",
   "screen.scriptautoce.library": "Script Library",
   "screen.scriptautoce.search": "Search scripts",
   "screen.scriptautoce.search_results": "Global search: %s results for \"%s\"",
@@ -24,6 +24,7 @@
   "screen.scriptautoce.filter.local": "Local",
   "screen.scriptautoce.filter.shared": "Shared",
   "screen.scriptautoce.filter.running": "Running",
+  "screen.scriptautoce.filter.history": "History",
   "screen.scriptautoce.folder": "Folder",
   "screen.scriptautoce.shared_subtitle": "Shared · %s · r%s",
   "screen.scriptautoce.mode.auto": "Auto",
@@ -32,6 +33,12 @@
   "screen.scriptautoce.editor": "Script Editor",
   "screen.scriptautoce.editor.placeholder": "Write SACE DSL here",
   "screen.scriptautoce.validate": "Validate",
+  "screen.scriptautoce.validateCommands": "Check commands",
+  "screen.scriptautoce.invalidCommand": "Invalid command syntax: %s",
+  "screen.scriptautoce.commandsValid": "Valid: %s static commands, %s dynamic commands, %s instructions",
+  "screen.scriptautoce.commandsValidOffline": "Syntax valid: no world connection, command tree unavailable (%s static, %s dynamic)",
+  "screen.scriptautoce.createFile": "Create file",
+  "screen.scriptautoce.createFolder": "Create folder",
   "screen.scriptautoce.saved": "Saved",
   "screen.scriptautoce.valid": "Valid: %s instructions",
   "screen.scriptautoce.arguments": "Script Arguments",
@@ -41,6 +48,7 @@
   "screen.scriptautoce.settings.server": "Server",
   "screen.scriptautoce.settings.commands": "Commands / tick",
   "screen.scriptautoce.settings.runtime": "Max ticks",
+  "screen.scriptautoce.settings.emergency": "Tick stop threshold (ms)",
   "screen.scriptautoce.settings.saveServer": "Save server",
   "screen.scriptautoce.settings.reload": "Reload",
   "screen.scriptautoce.settings.mode": "Mode: %s",
@@ -72,6 +80,9 @@
   "message.scriptautoce.job_failed": "Job failed: %s",
   "message.scriptautoce.job_cancelled": "Job cancelled",
   "message.scriptautoce.job_interrupted": "%s: %s",
+  "message.scriptautoce.sharing_started": "Sharing script: %s",
+  "message.scriptautoce.stop_requested": "Stop request sent",
+  "message.scriptautoce.job_not_active": "The job has already ended",
   "message.scriptautoce.server_error": "Server error: %s (%s:%s)",
   "message.scriptautoce.not_found": "Script not found: %s",
   "message.scriptautoce.sent_server": "Script sent to the server for validation. Use ##status to track it.",
@@ -109,6 +120,22 @@
   ,"screen.scriptautoce.job_command": "Current command: %s"
   ,"screen.scriptautoce.job_line": "Script line: %s"
   ,"screen.scriptautoce.job_technical_detail": "Technical detail: %s"
+  ,"screen.scriptautoce.job_started_at": "Started: %s"
+  ,"screen.scriptautoce.job_duration": "Duration: %s"
+  ,"screen.scriptautoce.job_ended_at": "Ended: %s"
+  ,"screen.scriptautoce.job_clock_source": "Time source: %s"
+  ,"screen.scriptautoce.job_emergency_hint": "Lower commands per tick, split the script, or raise the emergency threshold"
+  ,"screen.scriptautoce.time.local": "Local time"
+  ,"screen.scriptautoce.time.server": "Server time"
+  ,"screen.scriptautoce.deleteRecord": "Delete record"
+  ,"screen.scriptautoce.shared_header": "Shared scripts"
+  ,"screen.scriptautoce.running_header": "Running jobs"
+  ,"screen.scriptautoce.history_header": "Run history"
+  ,"screen.scriptautoce.shared_count_label": "Shared scripts: %s"
+  ,"screen.scriptautoce.running_count_label": "Running: %s"
+  ,"screen.scriptautoce.history_count_label": "History: %s"
+  ,"screen.scriptautoce.emptyRunning": "No running jobs"
+  ,"screen.scriptautoce.emptyHistory": "No run history"
   ,"screen.scriptautoce.no_logs": "No log output"
   ,"job.scriptautoce.reason.running": "Running"
   ,"job.scriptautoce.reason.running.description": "The task is currently executing"
@@ -119,7 +146,7 @@
   ,"job.scriptautoce.reason.external_disconnect": "Disconnected"
   ,"job.scriptautoce.reason.external_disconnect.description": "The player left or the connection was interrupted"
   ,"job.scriptautoce.reason.external_emergency": "Server emergency stop"
-  ,"job.scriptautoce.reason.external_emergency.description": "Server tick time exceeded the safety threshold"
+  ,"job.scriptautoce.reason.external_emergency.description": "The server exceeded the tick safety threshold and stopped the job"
   ,"job.scriptautoce.reason.limit_exceeded": "Execution limit exceeded"
   ,"job.scriptautoce.reason.limit_exceeded.description": "A command, runtime, concurrency or operation limit was reached"
   ,"job.scriptautoce.reason.script_error": "Script error"

@@ -329,6 +329,83 @@ public final class Interpreter {
                 requireArity(call, arguments, 1);
                 return new Value.IntValue(Math.round(arguments.getFirst().asDouble()));
             }
+            case "floor" -> {
+                requireArity(call, arguments, 1);
+                return new Value.IntValue((long) Math.floor(arguments.getFirst().asDouble()));
+            }
+            case "ceil" -> {
+                requireArity(call, arguments, 1);
+                return new Value.IntValue((long) Math.ceil(arguments.getFirst().asDouble()));
+            }
+            case "clamp" -> {
+                requireArity(call, arguments, 3);
+                Value value = arguments.get(0);
+                Value minimum = arguments.get(1);
+                Value maximum = arguments.get(2);
+                double clamped = Math.max(minimum.asDouble(),
+                        Math.min(maximum.asDouble(), value.asDouble()));
+                if (value instanceof Value.IntValue && minimum instanceof Value.IntValue
+                        && maximum instanceof Value.IntValue) {
+                    return new Value.IntValue(Math.round(clamped));
+                }
+                return new Value.DoubleValue(clamped);
+            }
+            case "length" -> {
+                requireArity(call, arguments, 1);
+                Value value = arguments.getFirst();
+                return new Value.IntValue(value instanceof Value.ListValue list
+                        ? list.values().size()
+                        : value.display().length());
+            }
+            case "contains" -> {
+                requireArity(call, arguments, 2);
+                Value value = arguments.get(0);
+                String search = arguments.get(1).display();
+                boolean contains = value instanceof Value.ListValue list
+                        ? list.values().stream().map(Value::display).anyMatch(search::equals)
+                        : value.display().contains(search);
+                return new Value.BoolValue(contains);
+            }
+            case "startsWith" -> {
+                requireArity(call, arguments, 2);
+                return new Value.BoolValue(arguments.get(0).display()
+                        .startsWith(arguments.get(1).display()));
+            }
+            case "endsWith" -> {
+                requireArity(call, arguments, 2);
+                return new Value.BoolValue(arguments.get(0).display()
+                        .endsWith(arguments.get(1).display()));
+            }
+            case "lower" -> {
+                requireArity(call, arguments, 1);
+                return new Value.StringValue(arguments.getFirst().display()
+                        .toLowerCase(Locale.ROOT));
+            }
+            case "upper" -> {
+                requireArity(call, arguments, 1);
+                return new Value.StringValue(arguments.getFirst().display()
+                        .toUpperCase(Locale.ROOT));
+            }
+            case "trim" -> {
+                requireArity(call, arguments, 1);
+                return new Value.StringValue(arguments.getFirst().display().strip());
+            }
+            case "replace" -> {
+                requireArity(call, arguments, 3);
+                return new Value.StringValue(arguments.get(0).display()
+                        .replace(arguments.get(1).display(), arguments.get(2).display()));
+            }
+            case "join" -> {
+                requireArity(call, arguments, 2);
+                if (!(arguments.getFirst() instanceof Value.ListValue list)) {
+                    throw new ScriptException(call.line(), call.column(),
+                            "join() expects a list as its first argument");
+                }
+                String separator = arguments.get(1).display();
+                return new Value.StringValue(list.values().stream()
+                        .map(Value::display)
+                        .collect(java.util.stream.Collectors.joining(separator)));
+            }
             case "__for_continue" -> {
                 requireArity(call, arguments, 3);
                 double current = arguments.get(0).asDouble();

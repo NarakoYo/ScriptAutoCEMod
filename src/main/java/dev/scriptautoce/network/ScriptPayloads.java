@@ -10,7 +10,7 @@ import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import net.minecraft.resources.Identifier;
 
 public final class ScriptPayloads {
-    public static final int PROTOCOL_VERSION = 2;
+    public static final int PROTOCOL_VERSION = 3;
     private static final int MAX_STRING = 64 * 1024;
     private static final int MAX_JSON = 256 * 1024;
 
@@ -256,7 +256,11 @@ public final class ScriptPayloads {
             String logsJson,
             String reasonCode,
             String detail,
-            int line
+            int line,
+            long startedAtMillis,
+            long endedAtMillis,
+            String timeZone,
+            boolean serverClock
     ) implements CustomPacketPayload {
         public static final Type<JobEventPayload> TYPE = new Type<>(payloadId("job_event"));
         public static final StreamCodec<RegistryFriendlyByteBuf, JobEventPayload> CODEC = StreamCodec.of(
@@ -270,10 +274,15 @@ public final class ScriptPayloads {
                     writeString(buffer, payload.reasonCode());
                     writeString(buffer, payload.detail());
                     buffer.writeVarInt(Math.max(0, payload.line()));
+                    buffer.writeLong(Math.max(0, payload.startedAtMillis()));
+                    buffer.writeLong(Math.max(0, payload.endedAtMillis()));
+                    writeString(buffer, payload.timeZone());
+                    buffer.writeBoolean(payload.serverClock());
                 },
                 buffer -> new JobEventPayload(readString(buffer), readString(buffer), readString(buffer),
                         buffer.readVarInt(), readString(buffer), readJson(buffer), readString(buffer),
-                        readString(buffer), buffer.readVarInt()));
+                        readString(buffer), buffer.readVarInt(), buffer.readLong(), buffer.readLong(),
+                        readString(buffer), buffer.readBoolean()));
 
         @Override
         public Type<? extends CustomPacketPayload> type() {

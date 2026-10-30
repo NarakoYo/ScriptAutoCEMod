@@ -1,7 +1,7 @@
 package dev.scriptautoce.script;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.IOException;
@@ -86,14 +86,14 @@ class InterpreterTest {
 
     @Test
     void rejectsPlainStringsInCommands() {
-        CompiledScript script = compile("""
+        CompilationResult result = ScriptCompiler.compile("string", """
                 meta name "string"
                 arg text: string = "hello world"
                 run "say ${text}"
                 """);
-        Interpreter interpreter = new Interpreter(script, Map.of(), HOST);
 
-        assertThrows(ScriptException.class, interpreter::advance);
+        assertFalse(result.success());
+        assertTrue(result.diagnostics().getFirst().message().contains("quote"));
     }
 
     @Test
@@ -127,16 +127,36 @@ class InterpreterTest {
     }
 
     @Test
-    void rejectsZeroStepLoop() {
+    void supportsStringCollectionAndMathHelpers() {
         CompiledScript script = compile("""
+                meta name "helpers"
+                log "${length("hello")}"
+                log "${contains("hello", "ell")}"
+                log "${lower("AbC")}"
+                log "${replace("a-b", "-", "_")}"
+                log "${clamp(12, 0, 10)}"
+                log "${floor(1.9)}"
+                log "${join(players(), ",")}"
+                """);
+        Interpreter interpreter = new Interpreter(script, Map.of(), HOST);
+
+        interpreter.advance();
+
+        assertEquals(List.of("5", "true", "abc", "a_b", "10", "1", "Alex"),
+                interpreter.drainLogs());
+    }
+
+    @Test
+    void rejectsZeroStepLoop() {
+        CompilationResult result = ScriptCompiler.compile("loop", """
                 meta name "loop"
                 for x in range(0, 3, 0) {
                     log "never"
                 }
                 """);
-        Interpreter interpreter = new Interpreter(script, Map.of(), HOST);
 
-        assertThrows(ScriptException.class, interpreter::advance);
+        assertFalse(result.success());
+        assertTrue(result.diagnostics().getFirst().message().contains("step"));
     }
 
     @Test

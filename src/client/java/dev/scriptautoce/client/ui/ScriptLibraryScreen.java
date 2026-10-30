@@ -19,95 +19,172 @@ public final class ScriptLibraryScreen extends Screen {
     private enum Filter {
         LOCAL,
         SHARED,
-        RUNNING
+        RUNNING,
+        HISTORY
     }
+
+    private static final int TAB_Y = 27;
+    private static final int SEARCH_Y = 51;
+    private static final int ACTION_Y = 75;
+    private static final int LIST_HEADER_Y = 98;
+    private static final int LIST_START_Y = 112;
 
     private final Screen parent;
     private Filter filter = Filter.LOCAL;
     private String currentFolder = "";
     private String search = "";
     private int page;
+    private EditBox searchBox;
+    private boolean restoreSearchFocus;
+    private int restoreSearchCursor;
 
     public ScriptLibraryScreen(Screen parent) {
         super(Component.translatable("screen.scriptautoce.library"));
         this.parent = parent;
     }
 
+    public void refreshFromData() {
+        rebuildWidgets();
+    }
+
     @Override
     protected void init() {
         clearWidgets();
-        addRenderableWidget(new StringWidget(6, 7, 120, 10,
+        ClientUiState.setDataListener(this::refreshFromData);
+        addRenderableWidget(new StringWidget(6, 7, 220, 10,
                 Component.literal("SCRIPT AUTO CE").withStyle(ChatFormatting.BOLD), font));
-        addRenderableWidget(new VSCodeButton(width - 66, 4, 62, 18,
+        addRenderableWidget(new VSCodeButton(width - 92, 4, 60, 18,
                 Component.translatable("screen.scriptautoce.settings"),
                 button -> minecraft.setScreenAndShow(new ScriptSettingsScreen(this))));
+        addRenderableWidget(new VSCodeButton(width - 28, 4, 24, 18,
+                Component.literal("×"), button -> onClose()));
 
-        addRenderableWidget(new VSCodeButton(4, 27, 58, 18, filterLabel(), button -> {
-            filter = Filter.values()[(filter.ordinal() + 1) % Filter.values().length];
-            search = "";
-            page = 0;
-            if (filter == Filter.SHARED) {
-                ClientNetworkController.requestShared(search);
-            }
-            rebuildWidgets();
-        }));
-
-        Button back = addRenderableWidget(new VSCodeButton(66, 27, 24, 18, Component.literal("<"), button -> {
-            currentFolder = parentOf(currentFolder);
-            page = 0;
-            rebuildWidgets();
-        }));
-        back.active = !currentFolder.isBlank();
-        addRenderableWidget(new StringWidget(96, 31, Math.max(80, width - 168), 10,
-                Component.literal(breadcrumb()).withStyle(ChatFormatting.GRAY), font));
-        addRenderableWidget(new VSCodeButton(width - 66, 27, 62, 18,
-                Component.translatable("screen.scriptautoce.refresh"), button -> {
-            ClientUiState.refreshLocal();
-            ClientNetworkController.requestShared(search);
-            rebuildWidgets();
-        }));
-
-        int searchWidth = filter == Filter.LOCAL ? Math.max(120, width - 218) : width - 8;
-        EditBox searchBox = new EditBox(font, 4, 51, searchWidth, 18,
-                Component.translatable("screen.scriptautoce.search"));
-        searchBox.setHint(Component.translatable("screen.scriptautoce.search"));
-        searchBox.setTextColor(0xFFFFFFFF);
-        searchBox.setValue(search);
-        searchBox.setResponder(value -> {
-            search = value;
-            page = 0;
-            rebuildWidgets();
-        });
-        addRenderableWidget(searchBox);
-        if (search.isBlank()) {
-            addRenderableWidget(new StringWidget(8, 56, 150, 10,
-                    Component.translatable("screen.scriptautoce.search").withStyle(ChatFormatting.GRAY), font));
-        }
-        if (filter == Filter.LOCAL) {
-            addRenderableWidget(new VSCodeButton(width - 210, 51, 64, 18,
-                    Component.translatable("screen.scriptautoce.newFile"), button -> createScript()));
-            addRenderableWidget(new VSCodeButton(width - 142, 51, 68, 18,
-                    Component.translatable("screen.scriptautoce.newFolder"), button -> createFolder()));
-        }
+        addTabs();
+        addSearch();
+        addActionRow();
 
         if (filter == Filter.LOCAL) {
             buildLocalExplorer();
         } else {
-            buildSharedOrRunning();
+            buildSharedOrJobs();
         }
         buildFooter();
     }
 
+    private void addTabs() {
+        int x = 4;
+        for (Filter value : Filter.values()) {
+            int width = switch (value) {
+                case LOCAL, SHARED -> 62;
+                case RUNNING -> 76;
+                case HISTORY -> 68;
+            };
+            Filter target = value;
+            addRenderableWidget(new VSCodeTabButton(x, TAB_Y, width, 18,
+                    Component.translatable("screen.scriptautoce.filter." + value.name().toLowerCase()),
+                    filter == value, button -> switchFilter(target)));
+            x += width + 2;
+        }
+    }
+
+    private void switchFilter(Filter next) {
+        if (filter == next) {
+            return;
+        }
+        filter = next;
+        search = "";
+        page = 0;
+        restoreSearchFocus = false;
+        if (filter == Filter.SHARED) {
+            ClientNetworkController.requestShared("");
+        }
+        rebuildWidgets();
+    }
+
+    private void addSearch() {
+        int searchWidth = filter == Filter.LOCAL ? Math.max(180, width - 212) : width - 8;
+        searchBox = new EditBox(font, 4, SEARCH_Y, searchWidth, 18,
+                Component.translatable("screen.scriptautoce.search"));
+        searchBox.setHint(Component.translatable("screen.scriptautoce.search"));
+        searchBox.setTextColor(0xFFFFFFFF);
+        searchBox.setValue(search);
+        searchBox.setResponder(this::onSearchChanged);
+        addRenderableWidget(searchBox);
+        if (restoreSearchFocus) {
+            setFocused(searchBox);
+            searchBox.setFocused(true);
+            searchBox.setCursorPosition(Math.min(restoreSearchCursor, searchBox.getValue().length()));
+            restoreSearchFocus = false;
+        }
+        if (filter == Filter.LOCAL) {
+            addRenderableWidget(new VSCodeButton(width - 204, SEARCH_Y, 94, 18,
+                    Component.translatable("screen.scriptautoce.newFile"), button -> createScript()));
+            addRenderableWidget(new VSCodeButton(width - 106, SEARCH_Y, 102, 18,
+                    Component.translatable("screen.scriptautoce.newFolder"), button -> createFolder()));
+        }
+    }
+
+    private void onSearchChanged(String value) {
+        if (searchBox == null) {
+            return;
+        }
+        boolean focused = searchBox.isFocused();
+        int cursor = searchBox.getCursorPosition();
+        search = value;
+        page = 0;
+        if (focused) {
+            restoreSearchFocus = true;
+            restoreSearchCursor = cursor;
+        }
+        rebuildWidgets();
+    }
+
+    private void addActionRow() {
+        if (filter == Filter.LOCAL) {
+            Button back = addRenderableWidget(new VSCodeButton(4, ACTION_Y, 24, 18,
+                    Component.literal("<"), button -> {
+                currentFolder = parentOf(currentFolder);
+                page = 0;
+                rebuildWidgets();
+            }));
+            back.active = !currentFolder.isBlank();
+            addRenderableWidget(new StringWidget(34, ACTION_Y + 5, Math.max(100, width - 180), 10,
+                    Component.literal(breadcrumb()).withStyle(ChatFormatting.GRAY), font));
+        } else {
+            Component summary = switch (filter) {
+                case SHARED -> Component.translatable("screen.scriptautoce.shared_count_label",
+                        filteredShared().size());
+                case RUNNING -> Component.translatable("screen.scriptautoce.running_count_label",
+                        filteredJobs().size());
+                case HISTORY -> Component.translatable("screen.scriptautoce.history_count_label",
+                        filteredJobs().size());
+                default -> Component.empty();
+            };
+            addRenderableWidget(new StringWidget(6, ACTION_Y + 5, width - 90, 10,
+                    summary.copy().withStyle(ChatFormatting.GRAY), font));
+        }
+        addRenderableWidget(new VSCodeButton(width - 66, ACTION_Y, 62, 18,
+                Component.translatable("screen.scriptautoce.refresh"), button -> refresh()));
+    }
+
+    private void refresh() {
+        ClientUiState.refreshLocal();
+        if (filter == Filter.SHARED) {
+            ClientNetworkController.requestShared(search);
+        }
+        rebuildWidgets();
+    }
+
     private void buildLocalExplorer() {
-        addRenderableWidget(new StringWidget(6, 77, width - 12, 10,
+        addRenderableWidget(new StringWidget(6, LIST_HEADER_Y, width - 12, 10,
                 listHeader().copy().withStyle(ChatFormatting.GRAY), font));
         List<ExplorerEntry> entries = explorerEntries();
-        int pageSize = effectivePageSize(94);
+        int pageSize = effectivePageSize();
         int maxPage = maxPage(entries.size(), pageSize);
         page = Math.min(page, maxPage);
         int start = page * pageSize;
         int end = Math.min(entries.size(), start + pageSize);
-        int y = 94;
+        int y = LIST_START_Y;
         for (int index = start; index < end; index++) {
             ExplorerEntry entry = entries.get(index);
             if (entry.folder() != null) {
@@ -144,20 +221,21 @@ public final class ScriptLibraryScreen extends Screen {
             y += 21;
         }
         if (entries.isEmpty()) {
-            addRenderableWidget(new StringWidget(8, 98, width - 16, 10,
-                    Component.translatable("screen.scriptautoce.empty").withStyle(ChatFormatting.GRAY), font));
+            addRenderableWidget(new StringWidget(8, LIST_START_Y + 4, width - 16, 10,
+                    Component.translatable("screen.scriptautoce.empty").withStyle(ChatFormatting.GRAY),
+                    font));
         }
     }
 
-    private void buildSharedOrRunning() {
-        int pageSize = effectivePageSize(78);
+    private void buildSharedOrJobs() {
+        addRenderableWidget(new StringWidget(6, LIST_HEADER_Y, width - 12, 10,
+                listHeader().copy().withStyle(ChatFormatting.GRAY), font));
+        int pageSize = effectivePageSize();
         if (filter == Filter.SHARED) {
             List<SharedScriptStore.Info> entries = filteredShared();
-            int maxPage = maxPage(entries.size(), pageSize);
-            page = Math.min(page, maxPage);
             int start = page * pageSize;
             int end = Math.min(entries.size(), start + pageSize);
-            int y = 78;
+            int y = LIST_START_Y;
             for (int index = start; index < end; index++) {
                 SharedScriptStore.Info shared = entries.get(index);
                 int downloadWidth = 64;
@@ -173,7 +251,8 @@ public final class ScriptLibraryScreen extends Screen {
                 addRenderableWidget(new VSCodeButton(7 + nameWidth, y, downloadWidth, 18,
                         Component.translatable("screen.scriptautoce.download"),
                         button -> ClientNetworkController.downloadShared(shared.id())));
-                addRenderableWidget(new VSCodeButton(7 + nameWidth + downloadWidth, y, deleteWidth, 18,
+                addRenderableWidget(new VSCodeButton(7 + nameWidth + downloadWidth, y,
+                        deleteWidth, 18,
                         Component.translatable("selectServer.delete"),
                         button -> minecraft.setScreenAndShow(new ScriptConfirmScreen(this,
                                 Component.translatable("screen.scriptautoce.delete.title"),
@@ -188,61 +267,81 @@ public final class ScriptLibraryScreen extends Screen {
                 y += 21;
             }
             if (entries.isEmpty()) {
-                addRenderableWidget(new StringWidget(8, 82, width - 16, 10,
-                        Component.translatable("screen.scriptautoce.empty").withStyle(ChatFormatting.GRAY), font));
+                addRenderableWidget(new StringWidget(8, LIST_START_Y + 4, width - 16, 10,
+                        Component.translatable("screen.scriptautoce.empty")
+                                .withStyle(ChatFormatting.GRAY), font));
             }
-        } else {
-            List<JobEventPayload> entries = filteredJobs();
-            int maxPage = maxPage(entries.size(), pageSize);
-            page = Math.min(page, maxPage);
-            int start = page * pageSize;
-            int end = Math.min(entries.size(), start + pageSize);
-            int y = 78;
-            for (int index = start; index < end; index++) {
-                JobEventPayload job = entries.get(index);
-                int stopWidth = 48;
-                int nameWidth = width - 11 - stopWidth;
-                addRenderableWidget(new ExplorerRowButton(4, y, nameWidth, 18,
-                        Component.literal(JobReasonDisplay.label(job.reasonCode()).getString() + " · "
-                                + JobReasonDisplay.description(job.reasonCode()).getString()),
-                        job.progress() + "%",
-                        ExplorerRowButton.IconKind.JOB,
-                        JobReasonDisplay.colorValue(job.reasonCode()),
-                        button -> minecraft.setScreenAndShow(new ScriptJobDetailScreen(this, job))));
-                addRenderableWidget(new VSCodeButton(7 + nameWidth, y, stopWidth, 18,
+            return;
+        }
+
+        List<JobEventPayload> entries = filteredJobs();
+        int start = page * pageSize;
+        int end = Math.min(entries.size(), start + pageSize);
+        int y = LIST_START_Y;
+        boolean history = filter == Filter.HISTORY;
+        for (int index = start; index < end; index++) {
+            JobEventPayload job = entries.get(index);
+            int actionWidth = history ? 48 : 52;
+            int nameWidth = width - 11 - actionWidth;
+            String title = JobReasonDisplay.label(job.reasonCode()).getString() + "  "
+                    + shortId(job.jobId());
+            String subtitle = history
+                    ? JobTimeDisplay.rowTime(job)
+                    : JobTimeDisplay.duration(job) + "  " + job.progress() + "%";
+            addRenderableWidget(new ExplorerRowButton(4, y, nameWidth, 18,
+                    Component.literal(title),
+                    subtitle,
+                    ExplorerRowButton.IconKind.JOB,
+                    JobReasonDisplay.colorValue(job.reasonCode()),
+                    button -> minecraft.setScreenAndShow(new ScriptJobDetailScreen(this, job))));
+            if (history) {
+                addRenderableWidget(new VSCodeButton(7 + nameWidth, y, actionWidth, 18,
+                        Component.translatable("screen.scriptautoce.deleteRecord"),
+                        button -> {
+                            ClientUiState.removeJob(job.jobId());
+                            rebuildWidgets();
+                        }));
+            } else {
+                addRenderableWidget(new VSCodeButton(7 + nameWidth, y, actionWidth, 18,
                         Component.translatable("screen.scriptautoce.stop"),
                         button -> ClientNetworkController.stopJob(job.jobId())));
-                y += 21;
             }
-            if (entries.isEmpty()) {
-                addRenderableWidget(new StringWidget(8, 82, width - 16, 10,
-                        Component.translatable("screen.scriptautoce.empty").withStyle(ChatFormatting.GRAY), font));
-            }
+            y += 21;
+        }
+        if (entries.isEmpty()) {
+            Component message = Component.translatable(history
+                    ? "screen.scriptautoce.emptyHistory"
+                    : "screen.scriptautoce.emptyRunning");
+            addRenderableWidget(new StringWidget(8, LIST_START_Y + 4, width - 16, 10,
+                    message.copy().withStyle(ChatFormatting.GRAY), font));
         }
     }
 
     private void buildFooter() {
         int footerY = height - 20;
         int total = viewEntryCount();
-        int pageSize = effectivePageSize(filter == Filter.LOCAL ? 94 : 78);
+        int pageSize = effectivePageSize();
         int maxPage = maxPage(total, pageSize);
-        Button previous = addRenderableWidget(new VSCodeButton(4, footerY, 24, 16,
-                Component.literal("<"), button -> {
-            page = Math.max(0, page - 1);
-            rebuildWidgets();
-        }));
-        previous.active = page > 0;
-        Button next = addRenderableWidget(new VSCodeButton(31, footerY, 24, 16,
-                Component.literal(">"), button -> {
-            page = Math.min(maxPage, page + 1);
-            rebuildWidgets();
-        }));
-        next.active = page < maxPage;
-        addRenderableWidget(new StringWidget(60, footerY + 3, width - 130, 10,
+        page = Math.min(page, maxPage);
+        int statusX = 8;
+        if (maxPage > 0) {
+            Button previous = addRenderableWidget(new VSCodeButton(4, footerY, 24, 16,
+                    Component.literal("<"), button -> {
+                page = Math.max(0, page - 1);
+                rebuildWidgets();
+            }));
+            previous.active = page > 0;
+            Button next = addRenderableWidget(new VSCodeButton(31, footerY, 24, 16,
+                    Component.literal(">"), button -> {
+                page = Math.min(maxPage, page + 1);
+                rebuildWidgets();
+            }));
+            next.active = page < maxPage;
+            statusX = 64;
+        }
+        addRenderableWidget(new StringWidget(statusX, footerY + 4, width - statusX - 10, 10,
                 Component.translatable("screen.scriptautoce.status_bar",
                         page + 1, maxPage + 1, total).withStyle(ChatFormatting.GRAY), font));
-        addRenderableWidget(new VSCodeButton(width - 64, footerY, 60, 16,
-                Component.translatable("gui.done"), button -> onClose()));
     }
 
     private void createScript() {
@@ -332,10 +431,15 @@ public final class ScriptLibraryScreen extends Screen {
     private List<JobEventPayload> filteredJobs() {
         String query = search.strip().toLowerCase(Locale.ROOT);
         return ClientUiState.jobs().values().stream()
+                .filter(job -> filter == Filter.RUNNING
+                        ? JobReasonDisplay.active(job.reasonCode())
+                        : !JobReasonDisplay.active(job.reasonCode()))
                 .filter(job -> query.isBlank()
                         || job.jobId().toLowerCase(Locale.ROOT).contains(query)
                         || JobReasonDisplay.description(job.reasonCode()).getString()
-                                .toLowerCase(Locale.ROOT).contains(query))
+                                .toLowerCase(Locale.ROOT).contains(query)
+                        || JobTimeDisplay.rowTime(job).toLowerCase(Locale.ROOT).contains(query))
+                .sorted((left, right) -> Long.compare(right.startedAtMillis(), left.startedAtMillis()))
                 .toList();
     }
 
@@ -349,7 +453,12 @@ public final class ScriptLibraryScreen extends Screen {
             return Component.translatable("screen.scriptautoce.search_results",
                     viewEntryCount(), search);
         }
-        return Component.literal(breadcrumb());
+        return switch (filter) {
+            case LOCAL -> Component.literal(breadcrumb());
+            case SHARED -> Component.translatable("screen.scriptautoce.shared_header");
+            case RUNNING -> Component.translatable("screen.scriptautoce.running_header");
+            case HISTORY -> Component.translatable("screen.scriptautoce.history_header");
+        };
     }
 
     private String breadcrumb() {
@@ -357,28 +466,20 @@ public final class ScriptLibraryScreen extends Screen {
                 + currentFolder.replace("/", " / ");
     }
 
-    private int effectivePageSize(int startY) {
-        return Math.max(1, (height - 24 - startY) / 21);
+    private int effectivePageSize() {
+        return Math.max(1, (height - 24 - LIST_START_Y) / 21);
     }
 
     private static int maxPage(int total, int pageSize) {
         return Math.max(0, (total - 1) / pageSize);
     }
 
-    private Component filterLabel() {
-        return Component.translatable("screen.scriptautoce.filter." + filter.name().toLowerCase());
-    }
-
     private String clip(String value, int pixelWidth) {
         return font.plainSubstrByWidth(value, Math.max(30, pixelWidth));
     }
 
-    private Component jobLabel(JobEventPayload job) {
-        return Component.translatable("screen.scriptautoce.job_entry",
-                JobReasonDisplay.label(job.reasonCode()),
-                job.progress() + "%",
-                clip(JobReasonDisplay.description(job.reasonCode()).getString(), width - 150))
-                .withStyle(JobReasonDisplay.color(job.reasonCode()));
+    private static String shortId(String id) {
+        return id == null || id.length() <= 8 ? id : id.substring(0, 8);
     }
 
     private static String parentOf(String folder) {
@@ -395,8 +496,10 @@ public final class ScriptLibraryScreen extends Screen {
     public void extractBackground(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float delta) {
         graphics.fill(0, 0, width, height, 0xFF1E1E1E);
         graphics.fill(0, 0, width, 25, 0xFF252526);
-        graphics.fill(0, 25, width, 73, 0xFF2D2D30);
-        graphics.fill(4, 76, width - 4, height - 24, 0xFF1E1E1E);
+        graphics.fill(0, 25, width, TAB_Y + 20, 0xFF2D2D30);
+        graphics.fill(4, 48, width - 4, 73, 0xFF252526);
+        graphics.fill(4, 73, width - 4, 95, 0xFF2D2D30);
+        graphics.fill(4, 95, width - 4, height - 24, 0xFF1E1E1E);
         graphics.fill(0, height - 20, width, height - 19, 0xFF3B82F6);
         graphics.fill(0, height - 19, width, height, 0xFF1F2937);
     }
@@ -408,7 +511,14 @@ public final class ScriptLibraryScreen extends Screen {
 
     @Override
     public void onClose() {
+        ClientUiState.clearDataListener();
         minecraft.setScreenAndShow(parent);
+    }
+
+    @Override
+    public void removed() {
+        ClientUiState.clearDataListener();
+        super.removed();
     }
 
     private record ExplorerEntry(String folder, LocalScriptRepository.Summary script) {

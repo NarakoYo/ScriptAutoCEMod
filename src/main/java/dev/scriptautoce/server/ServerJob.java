@@ -22,6 +22,7 @@ final class ServerJob {
     final CompiledScript script;
     final Interpreter interpreter;
     final long startedTick;
+    final long startedAtMillis;
     final int maxCommands;
     final int maxTicks;
     final Deque<String> logs = new ArrayDeque<>();
@@ -35,6 +36,7 @@ final class ServerJob {
     JobReason reason = JobReason.RUNNING;
     String detail = "";
     long completedTick = -1;
+    long endedAtMillis;
     boolean progressDirty;
 
     ServerJob(String id, UUID playerId, CompiledScript script, Interpreter interpreter,
@@ -44,6 +46,7 @@ final class ServerJob {
         this.script = script;
         this.interpreter = interpreter;
         this.startedTick = startedTick;
+        this.startedAtMillis = System.currentTimeMillis();
         this.maxCommands = maxCommands;
         this.maxTicks = maxTicks;
     }
@@ -69,6 +72,7 @@ final class ServerJob {
         reason = finalReason;
         detail = finalDetail;
         completedTick = tick;
+        endedAtMillis = System.currentTimeMillis();
         progressDirty = true;
     }
 

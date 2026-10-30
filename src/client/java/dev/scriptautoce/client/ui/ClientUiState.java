@@ -28,6 +28,8 @@ public final class ClientUiState {
     }.getType();
     private static boolean serverAvailable;
     private static boolean sharingEnabled;
+    private static Runnable dataListener = () -> {
+    };
     private static int serverMaxSourceBytes = 64 * 1024;
     private static String serverSettingsJson = "{}";
 
@@ -114,12 +116,45 @@ public final class ClientUiState {
         return Map.copyOf(JOBS);
     }
 
+    public static JobEventPayload job(String id) {
+        return JOBS.get(id);
+    }
+
+    public static List<JobEventPayload> activeJobs() {
+        return JOBS.values().stream()
+                .filter(job -> JobReasonDisplay.active(job.reasonCode()))
+                .sorted(java.util.Comparator.comparingLong(JobEventPayload::startedAtMillis))
+                .toList();
+    }
+
+    public static List<JobEventPayload> jobHistory() {
+        return JOBS.values().stream()
+                .filter(job -> !JobReasonDisplay.active(job.reasonCode()))
+                .sorted(java.util.Comparator.comparingLong(JobEventPayload::endedAtMillis).reversed())
+                .toList();
+    }
+
     public static void updateJob(JobEventPayload event) {
         JOBS.put(event.jobId(), event);
-        if (event.eventType().equals("finished") || event.eventType().equals("failed")
-                || event.eventType().equals("cancelled")) {
-            // Keep completed jobs visible until the next connection.
-        }
+    }
+
+    public static void removeJob(String id) {
+        JOBS.remove(id);
+        JOB_LOGS.remove(id);
+    }
+
+    public static void setDataListener(Runnable listener) {
+        dataListener = listener == null ? () -> {
+        } : listener;
+    }
+
+    public static void clearDataListener() {
+        dataListener = () -> {
+        };
+    }
+
+    public static void notifyDataChanged() {
+        dataListener.run();
     }
 
     public static List<String> consumeNewLogs(JobEventPayload event) {

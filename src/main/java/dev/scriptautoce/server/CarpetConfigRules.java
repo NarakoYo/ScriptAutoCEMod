@@ -8,7 +8,7 @@ public final class CarpetConfigRules {
     public static boolean sharingEnabled = true;
 
     @Rule(categories = {"scriptautoce"}, strict = false)
-    public static int maxCommandsPerTick = 4;
+    public static int maxCommandsPerTick = 2;
 
     @Rule(categories = {"scriptautoce"}, strict = false)
     public static int maxRuntimeTicks = 6_000;

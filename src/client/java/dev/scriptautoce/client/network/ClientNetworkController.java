@@ -99,6 +99,7 @@ public final class ClientNetworkController {
         ClientPlayNetworking.registerGlobalReceiver(CatalogPayload.TYPE, (payload, context) -> {
             List<SharedScriptStore.Info> entries = JsonFiles.GSON.fromJson(payload.entriesJson(), SHARED_LIST_TYPE);
             ClientUiState.setSharedScripts(entries == null ? List.of() : entries);
+            ClientUiState.notifyDataChanged();
         });
         ClientPlayNetworking.registerGlobalReceiver(ScriptContentPayload.TYPE, (payload, context) -> {
             if (payload.error() != null && !payload.error().isBlank()) {
@@ -175,6 +176,9 @@ public final class ClientNetworkController {
                 default -> {
                 }
             }
+            if (!payload.eventType().equals("progress") && !payload.eventType().equals("snapshot")) {
+                ClientUiState.notifyDataChanged();
+            }
         });
         ClientPlayNetworking.registerGlobalReceiver(ErrorPayload.TYPE, (payload, context) ->
                 ClientUiState.message(MessageTone.ERROR,
@@ -250,8 +254,18 @@ public final class ClientNetworkController {
         if (directJobs.cancel(id)) {
             ClientUiState.message(MessageTone.WARNING,
                     Component.translatable("message.scriptautoce.direct_cancelled"));
-        } else if (ClientUiState.serverAvailable()) {
+            return;
+        }
+        JobEventPayload job = ClientUiState.job(id);
+        if (job == null || !JobReasonDisplay.active(job.reasonCode())) {
+            ClientUiState.message(MessageTone.WARNING,
+                    Component.translatable("message.scriptautoce.job_not_active"));
+            return;
+        }
+        if (ClientUiState.serverAvailable()) {
             ClientPlayNetworking.send(new CancelJobPayload(id));
+            ClientUiState.message(MessageTone.INFO,
+                    Component.translatable("message.scriptautoce.stop_requested"));
         }
     }
 
@@ -267,6 +281,8 @@ public final class ClientNetworkController {
             boolean ownsShared = ClientUiState.sharedScripts().stream()
                     .anyMatch(info -> info.id().equals(localId) && info.ownerUuid().equals(playerId));
             ClientPlayNetworking.send(new UploadSharedPayload(ownsShared ? localId : "", source));
+            ClientUiState.message(MessageTone.INFO,
+                    Component.translatable("message.scriptautoce.sharing_started", localId));
         } catch (RuntimeException exception) {
             ClientUiState.message(MessageTone.ERROR, Component.literal(exception.getMessage()));
         }
@@ -411,7 +427,7 @@ public final class ClientNetworkController {
             stopJob(id);
             return;
         }
-        ClientUiState.jobs().keySet().forEach(ClientNetworkController::stopJob);
+        ClientUiState.activeJobs().forEach(job -> stopJob(job.jobId()));
     }
 
     private static void status() {

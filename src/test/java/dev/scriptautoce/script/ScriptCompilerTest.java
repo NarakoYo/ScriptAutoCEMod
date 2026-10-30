@@ -56,6 +56,48 @@ class ScriptCompilerTest {
     }
 
     @Test
+    void rejectsEmptyScriptsAndBadFunctionArity() {
+        CompilationResult empty = ScriptCompiler.compile("empty", "\n# only a comment\n");
+        CompilationResult badArity = ScriptCompiler.compile("arity", """
+                log "${replace("a", "b")}"
+                """);
+
+        assertFalse(empty.success());
+        assertTrue(empty.diagnostics().getFirst().message().contains("no executable statements"));
+        assertFalse(badArity.success());
+        assertTrue(badArity.diagnostics().stream().anyMatch(diagnostic ->
+                diagnostic.message().contains("replace() expects 3 arguments")));
+    }
+
+    @Test
+    void rejectsContradictoryStatementsBeforeExecution() {
+        CompilationResult duplicate = ScriptCompiler.compile("duplicate", """
+                let value = 1
+                let value = 2
+                log "${value}"
+                """);
+        CompilationResult condition = ScriptCompiler.compile("condition", """
+                let value = 1
+                if value {
+                    log "bad"
+                }
+                """);
+        CompilationResult unknown = ScriptCompiler.compile("unknown", """
+                log "${missing}"
+                """);
+
+        assertFalse(duplicate.success());
+        assertTrue(duplicate.diagnostics().stream().anyMatch(diagnostic ->
+                diagnostic.message().contains("already defined")));
+        assertFalse(condition.success());
+        assertTrue(condition.diagnostics().stream().anyMatch(diagnostic ->
+                diagnostic.message().contains("boolean")));
+        assertFalse(unknown.success());
+        assertTrue(unknown.diagnostics().stream().anyMatch(diagnostic ->
+                diagnostic.message().contains("Unknown variable")));
+    }
+
+    @Test
     void rejectsOversizedSources() {
         CompilationResult result = ScriptCompiler.compile("huge", "x".repeat(ScriptCompiler.MAX_SOURCE_BYTES + 1));
 

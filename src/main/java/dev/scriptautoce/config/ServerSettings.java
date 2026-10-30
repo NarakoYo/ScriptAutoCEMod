@@ -40,13 +40,24 @@ public record ServerSettings(
     }
 
     public static ServerSettings defaults() {
-        return new ServerSettings(true, 64 * 1024, 2_000, 10_000, 4, 6_000, 1, 8, 32,
-                1024L * 1024L, 250, new ArrayList<>(CommandPolicy.DEFAULT_BLOCKED), List.of());
+        return new ServerSettings(true, 64 * 1024, 2_000, 10_000, 2, 6_000, 1, 8, 32,
+                1024L * 1024L, 1_000, new ArrayList<>(CommandPolicy.DEFAULT_BLOCKED), List.of());
     }
 
     public static ServerSettings load() {
         ServerSettings loaded = JsonFiles.read(ConfigPaths.serverSettings(), ServerSettings.class, defaults());
-        return loaded == null ? defaults() : loaded;
+        if (loaded == null) {
+            return defaults();
+        }
+        if (loaded.emergencyTickMillis() == 250 && loaded.maxCommandsPerTick() == 4) {
+            return new ServerSettings(loaded.sharingEnabled(), loaded.maxSourceBytes(),
+                    loaded.maxInstructions(), loaded.maxCommandsPerRun(), 2,
+                    loaded.maxRuntimeTicks(), loaded.maxConcurrentPerPlayer(),
+                    loaded.maxConcurrentGlobal(), loaded.maxUploadsPerPlayer(),
+                    loaded.maxSharedBytesPerPlayer(), 1_000, loaded.blockedCommands(),
+                    loaded.allowedCommands());
+        }
+        return loaded;
     }
 
     public void save() {

@@ -11,12 +11,15 @@ Current version: `0.1.0-alpha`.
 
 - Minecraft 26.2
 - Fabric Loader 0.19.3 or newer
-- Fabric API 0.161.0+26.2
+- Fabric API 0.158.0 or newer for Minecraft 26.2
 - Fabric Carpet 26.2
 - Java 25 runtime
 
 The build itself uses Gradle 9.2.1 and Fabric Loom 1.15.5. Gradle 9.2 requires a Java 25 JDK, so set
 `JAVA_HOME` to a JDK 25 installation before building.
+
+The project compiles against Fabric API `0.158.0+26.2` and declares no upper version bound. This keeps the
+same JAR loadable with older 0.158 APIs and newer backward-compatible Fabric API releases such as 0.161.
 
 ## Build
 

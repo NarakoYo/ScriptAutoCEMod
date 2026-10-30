@@ -1,0 +1,12 @@
+# Script Auto CE example
+meta name "welcome"
+meta on_error "stop"
+meta on_denied "stop"
+arg size: int = 3 min 1 max 16
+
+log "Script Auto CE will send ${size} commands."
+for i in range(0, size) {
+    run "say Script Auto CE command ${i}"
+    wait 5t
+}
+log "Finished."

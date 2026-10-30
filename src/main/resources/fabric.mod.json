@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "id": "scriptautoce",
+  "version": "${version}",
+  "name": "Script Auto CE",
+  "description": "Client-first, server-validated batch command scripts powered by a restricted Minecraft DSL.",
+  "authors": [
+    "Script Auto CE contributors"
+  ],
+  "license": "MIT",
+  "icon": "assets/scriptautoce/icon.png",
+  "environment": "*",
+  "entrypoints": {
+    "main": [
+      "dev.scriptautoce.ScriptAutoCe"
+    ],
+    "client": [
+      "dev.scriptautoce.client.ScriptAutoCeClient"
+    ]
+  },
+  "depends": {
+    "fabricloader": ">=0.19.3",
+    "minecraft": "26.2",
+    "java": ">=25",
+    "fabric-api": ">=0.161.0+26.2",
+    "carpet": ">=26.2"
+  }
+}

@@ -1,0 +1,16 @@
+# Carpet fake-player example.
+# Requires Carpet's /player command and the normal operator command permission.
+meta name "spawn_10_fake_players"
+meta on_error "continue"
+meta on_denied "stop"
+meta max_commands "10"
+meta max_ticks "200"
+arg prefix: token = "sace_bot"
+
+log "Spawning 10 fake players at the same position."
+let spawn = pos()
+for i in range(0, 10) {
+    run "player ${prefix}_${i} spawn at ${spawn}"
+    wait 1t
+}
+log "Finished spawning fake players. Stop one with /player <name> kill."

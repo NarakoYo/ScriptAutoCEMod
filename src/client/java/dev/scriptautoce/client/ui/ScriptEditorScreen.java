@@ -35,17 +35,17 @@ public final class ScriptEditorScreen extends Screen {
         clearWidgets();
         addRenderableWidget(new StringWidget(10, 7, width - 20, 10,
                 Component.literal(fileName()).withStyle(ChatFormatting.WHITE), font));
-        addRenderableWidget(Button.builder(Component.translatable("selectWorld.edit.save"), button -> save())
-                .bounds(4, 28, 45, 18).build());
-        addRenderableWidget(Button.builder(Component.translatable("screen.scriptautoce.validate"),
-                button -> validate()).bounds(53, 28, 58, 18).build());
-        addRenderableWidget(Button.builder(Component.translatable("screen.scriptautoce.run"),
-                button -> run()).bounds(115, 28, 44, 18).build());
-        Button delete = addRenderableWidget(Button.builder(Component.translatable("selectServer.delete"),
-                button -> confirmDelete()).bounds(163, 28, 46, 18).build());
+        addRenderableWidget(new VSCodeButton(4, 28, 45, 18,
+                Component.translatable("selectWorld.edit.save"), button -> save()));
+        addRenderableWidget(new VSCodeButton(53, 28, 58, 18,
+                Component.translatable("screen.scriptautoce.validate"), button -> validate()));
+        addRenderableWidget(new VSCodeButton(115, 28, 44, 18,
+                Component.translatable("screen.scriptautoce.run"), button -> run()));
+        Button delete = addRenderableWidget(new VSCodeButton(163, 28, 46, 18,
+                Component.translatable("selectServer.delete"), button -> confirmDelete()));
         delete.active = scriptId != null;
-        addRenderableWidget(Button.builder(Component.translatable("gui.back"), button -> onClose())
-                .bounds(width - 48, 28, 44, 18).build());
+        addRenderableWidget(new VSCodeButton(width - 48, 28, 44, 18,
+                Component.translatable("gui.back"), button -> onClose()));
 
         editor = MultiLineEditBox.builder()
                 .setX(52)

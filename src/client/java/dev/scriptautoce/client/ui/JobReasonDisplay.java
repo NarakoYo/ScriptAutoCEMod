@@ -29,6 +29,17 @@ public final class JobReasonDisplay {
         };
     }
 
+    public static int colorValue(String reasonCode) {
+        return switch (reasonCode == null ? "UNKNOWN" : reasonCode) {
+            case "COMPLETED" -> 0xFF6A9955;
+            case "RUNNING" -> 0xFF4FC1FF;
+            case "USER_CANCELLED", "LIMIT_EXCEEDED" -> 0xFFDCDCAA;
+            case "EXTERNAL_DISCONNECT", "EXTERNAL_EMERGENCY" -> 0xFFCE9178;
+            case "SCRIPT_ERROR", "COMMAND_ERROR", "COMMAND_DENIED", "POLICY_BLOCKED" -> 0xFFF48771;
+            default -> 0xFF858585;
+        };
+    }
+
     public static boolean active(String reasonCode) {
         return "RUNNING".equals(reasonCode);
     }

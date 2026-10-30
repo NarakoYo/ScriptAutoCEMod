@@ -71,6 +71,10 @@ public final class ClientUiState {
         SHARED_SCRIPTS.addAll(scripts);
     }
 
+    public static void removeSharedScript(String id) {
+        SHARED_SCRIPTS.removeIf(script -> script.id().equals(id));
+    }
+
     public static boolean serverAvailable() {
         return serverAvailable;
     }

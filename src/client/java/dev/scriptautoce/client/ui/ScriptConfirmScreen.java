@@ -10,17 +10,25 @@ final class ScriptConfirmScreen extends Screen {
     private final Screen parent;
     private final Runnable action;
     private final Component message;
+    private final Component confirmText;
 
     ScriptConfirmScreen(Screen parent, Runnable action) {
         this(parent, Component.translatable("screen.scriptautoce.confirm.title"),
-                Component.translatable("screen.scriptautoce.confirm.message"), action);
+                Component.translatable("screen.scriptautoce.confirm.message"),
+                Component.translatable("screen.scriptautoce.run"), action);
     }
 
     ScriptConfirmScreen(Screen parent, Component title, Component message, Runnable action) {
+        this(parent, title, message, Component.translatable("gui.ok"), action);
+    }
+
+    ScriptConfirmScreen(Screen parent, Component title, Component message,
+                        Component confirmText, Runnable action) {
         super(title);
         this.parent = parent;
         this.action = action;
         this.message = message;
+        this.confirmText = confirmText;
     }
 
     @Override
@@ -31,9 +39,8 @@ final class ScriptConfirmScreen extends Screen {
                 font.width(title) + 4, 10, title, font));
         addRenderableWidget(new StringWidget((width - font.width(message)) / 2, height / 2 - 8,
                 font.width(message) + 4, 10, message, font));
-        addRenderableWidget(Button.builder(Component.translatable("screen.scriptautoce.run"), button -> {
+        addRenderableWidget(Button.builder(confirmText, button -> {
             action.run();
-            minecraft.setScreenAndShow(null);
         }).bounds(width / 2 - 82, y, 76, 20).build());
         addRenderableWidget(Button.builder(Component.translatable("gui.cancel"),
                 button -> minecraft.setScreenAndShow(parent))

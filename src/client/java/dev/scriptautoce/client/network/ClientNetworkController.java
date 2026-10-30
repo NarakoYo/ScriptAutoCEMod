@@ -9,6 +9,7 @@ import dev.scriptautoce.client.ui.ClientUiState;
 import dev.scriptautoce.client.ui.ClientUiState.MessageTone;
 import dev.scriptautoce.client.ui.JobReasonDisplay;
 import dev.scriptautoce.client.ui.ScriptLibraryScreen;
+import dev.scriptautoce.client.ui.SharedScriptDetailScreen;
 import dev.scriptautoce.network.ScriptPayloads;
 import dev.scriptautoce.network.ScriptPayloads.ActionResultPayload;
 import dev.scriptautoce.network.ScriptPayloads.CancelJobPayload;
@@ -50,6 +51,7 @@ public final class ClientNetworkController {
     private static final Type SHARED_LIST_TYPE = new TypeToken<List<SharedScriptStore.Info>>() {
     }.getType();
     private static final Map<String, PendingRun> PENDING_RUNS = new HashMap<>();
+    private static final Map<String, PendingPreview> PENDING_PREVIEWS = new HashMap<>();
     private static Minecraft client;
     private static DirectScriptJobManager directJobs;
     private static KeyMapping openLibrary;
@@ -100,17 +102,29 @@ public final class ClientNetworkController {
         });
         ClientPlayNetworking.registerGlobalReceiver(ScriptContentPayload.TYPE, (payload, context) -> {
             if (payload.error() != null && !payload.error().isBlank()) {
+                PENDING_RUNS.remove(payload.id());
+                PENDING_PREVIEWS.remove(payload.id());
                 ClientUiState.message(MessageTone.ERROR, Component.literal(payload.error()));
                 return;
             }
-            ClientUiState.localRepository().importSource(payload.id(), payload.source());
-            ClientUiState.refreshLocal();
             PendingRun pending = PENDING_RUNS.remove(payload.id());
             if (pending != null) {
+                ClientUiState.localRepository().importSource(payload.id(), payload.source());
+                ClientUiState.refreshLocal();
                 runSource(payload.source(), pending.arguments());
             } else {
-                ClientUiState.message(MessageTone.SUCCESS,
-                        Component.translatable("message.scriptautoce.downloaded", payload.id()));
+                PendingPreview preview = PENDING_PREVIEWS.remove(payload.id());
+                if (preview != null) {
+                    SharedScriptStore.Info info = JsonFiles.GSON.fromJson(
+                            payload.metadataJson(), SharedScriptStore.Info.class);
+                    context.client().setScreenAndShow(new SharedScriptDetailScreen(
+                            preview.parent(), info, payload.source()));
+                } else {
+                    ClientUiState.localRepository().importSource(payload.id(), payload.source());
+                    ClientUiState.refreshLocal();
+                    ClientUiState.message(MessageTone.SUCCESS,
+                            Component.translatable("message.scriptautoce.downloaded", payload.id()));
+                }
             }
         });
         ClientPlayNetworking.registerGlobalReceiver(ActionResultPayload.TYPE, (payload, context) -> {
@@ -135,6 +149,9 @@ public final class ClientNetworkController {
                             Component.translatable("message.scriptautoce.action_failed",
                                     payload.message()));
                 }
+            if (payload.action().equals("delete")) {
+                requestShared("");
+            }
             }
         });
         ClientPlayNetworking.registerGlobalReceiver(JobEventPayload.TYPE, (payload, context) -> {
@@ -257,6 +274,7 @@ public final class ClientNetworkController {
 
     public static void deleteShared(String id) {
         if (ClientUiState.serverAvailable()) {
+            ClientUiState.removeSharedScript(id);
             ClientPlayNetworking.send(new DeleteSharedPayload(id));
         }
     }
@@ -268,6 +286,16 @@ public final class ClientNetworkController {
             ClientUiState.message(MessageTone.WARNING,
                     Component.translatable("message.scriptautoce.shared_unavailable"));
         }
+    }
+
+    public static void previewShared(String id, net.minecraft.client.gui.screens.Screen parent) {
+        if (!ClientUiState.serverAvailable()) {
+            ClientUiState.message(MessageTone.WARNING,
+                    Component.translatable("message.scriptautoce.shared_unavailable"));
+            return;
+        }
+        PENDING_PREVIEWS.put(id, new PendingPreview(parent));
+        ClientPlayNetworking.send(new DownloadSharedPayload(id));
     }
 
     public static void requestShared(String query) {
@@ -416,6 +444,9 @@ public final class ClientNetworkController {
         private PendingRun {
             arguments = Map.copyOf(arguments);
         }
+    }
+
+    private record PendingPreview(net.minecraft.client.gui.screens.Screen parent) {
     }
 
     private static FirstArgument parseFirstArgument(String input) {

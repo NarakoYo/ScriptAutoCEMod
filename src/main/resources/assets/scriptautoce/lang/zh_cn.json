@@ -24,6 +24,8 @@
   "screen.scriptautoce.filter.local": "本地",
   "screen.scriptautoce.filter.shared": "共享",
   "screen.scriptautoce.filter.running": "运行中",
+  "screen.scriptautoce.folder": "文件夹",
+  "screen.scriptautoce.shared_subtitle": "共享 · %s · 修订 %s",
   "screen.scriptautoce.mode.auto": "自动",
   "screen.scriptautoce.mode.server": "服务端校验",
   "screen.scriptautoce.mode.direct": "客户端回退",
@@ -130,4 +132,10 @@
   ,"job.scriptautoce.reason.policy_blocked.description": "命令被 Script Auto CE 安全策略禁止"
   ,"job.scriptautoce.reason.unknown": "未知原因"
   ,"job.scriptautoce.reason.unknown.description": "任务结束时没有提供结构化原因"
+  ,"screen.scriptautoce.shared_detail": "共享脚本详情"
+  ,"screen.scriptautoce.shared_title": "标题：%s"
+  ,"screen.scriptautoce.shared_author": "作者：%s（%s）"
+  ,"screen.scriptautoce.shared_revision": "修订 %s · 更新时间 %s"
+  ,"screen.scriptautoce.shared_metadata": "SHA-256：%s · %s 字节"
+  ,"screen.scriptautoce.shared_content": "共享脚本源码"
 }

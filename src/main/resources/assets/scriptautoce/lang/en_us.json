@@ -24,6 +24,8 @@
   "screen.scriptautoce.filter.local": "Local",
   "screen.scriptautoce.filter.shared": "Shared",
   "screen.scriptautoce.filter.running": "Running",
+  "screen.scriptautoce.folder": "Folder",
+  "screen.scriptautoce.shared_subtitle": "Shared · %s · r%s",
   "screen.scriptautoce.mode.auto": "Auto",
   "screen.scriptautoce.mode.server": "Server validated",
   "screen.scriptautoce.mode.direct": "Direct fallback",
@@ -130,4 +132,10 @@
   ,"job.scriptautoce.reason.policy_blocked.description": "The command was blocked by Script Auto CE safety policy"
   ,"job.scriptautoce.reason.unknown": "Unknown reason"
   ,"job.scriptautoce.reason.unknown.description": "No structured reason was reported"
+  ,"screen.scriptautoce.shared_detail": "Shared Script Details"
+  ,"screen.scriptautoce.shared_title": "Title: %s"
+  ,"screen.scriptautoce.shared_author": "Author: %s (%s)"
+  ,"screen.scriptautoce.shared_revision": "Revision %s · Updated %s"
+  ,"screen.scriptautoce.shared_metadata": "SHA-256: %s · %s bytes"
+  ,"screen.scriptautoce.shared_content": "Shared script source"
 }
